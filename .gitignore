@@ -1,0 +1,9 @@
+# Configuration file
+includes/configuration.php
+
+# Dependencies
+nodejs/node_modules
+vendor/
+
+# VS Code configuration
+.vscode/
