@@ -1,0 +1,161 @@
+		.chat-container {
+			background: #ece5dd;
+			padding: 15px;
+			height: 300px !important;
+			overflow-y: auto;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.chat-bubble {
+			max-width: 70%;
+			padding: 10px 15px;
+			border-radius: 15px;
+			margin: 5px 0;
+			position: relative;
+			font-size: 14px;
+		}
+
+		.chat-bubble.sent {
+			background: #dcf8c6;
+			align-self: flex-end;
+			border-bottom-right-radius: 0;
+		}
+
+		.chat-bubble.received {
+			background: #fff;
+			align-self: flex-start;
+			border-bottom-left-radius: 0;
+		}
+
+		.chat-bubble .time {
+			display: block;
+			font-size: 11px;
+			color: #888;
+			margin-top: 5px;
+			text-align: right;
+		}
+
+		
+
+		/* Que las columnas tengan mismo alto */
+.row.column4.graph {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+/* Que la sección de chat se comporte como columna */
+.chat-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Contenedor del chat */
+.chat-container {
+    background: #ece5dd;
+    padding: 15px;
+    height: 400px; /* Ajustable */
+    overflow-y: auto;
+    flex-grow: 1; /* Ocupar todo el espacio disponible */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Barra inferior para enviar mensaje */
+.chat-input-area {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #ccc;
+    background: #fff;
+    padding: 10px;
+}
+
+.chat-input {
+    flex-grow: 1;
+    border: none;
+    padding: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+.btn-send {
+    background: #25d366; /* Verde estilo WhatsApp */
+    border: none;
+    padding: 10px 15px;
+    margin-left: 10px;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-send i {
+    font-size: 18px;
+}
+
+.btn-read {
+    background: #03a9f4; /* Verde estilo WhatsApp */
+    border: none;
+    padding: 10px 15px;
+    margin-left: 10px;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-read i {
+    font-size: 18px;
+}
+
+.chat-item {
+    cursor: pointer;          /* Manita */
+    transition: background 0.2s; /* Animación suave */
+}
+
+.chat-item:hover {
+    background-color: #cce5ff; /* Color de fondo al pasar el mouse */
+}
+
+.msg_list_main {
+    max-height: 433px; /* Ajusta según el diseño */
+    overflow-y: auto;
+    overflow-x: hidden; /* evita scroll horizontal */
+    padding-right: 5px; /* para que no se corte el contenido */
+}
+
+/* Opcional: estilo para la barra de scroll */
+.msg_list_main::-webkit-scrollbar {
+    width: 6px;
+}
+
+.msg_list_main::-webkit-scrollbar-thumb {
+    background-color: #bbb;
+    border-radius: 4px;
+}
+
+.chat-bubble {
+    max-width: 70%;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    display: inline-block;
+    position: relative;
+}
+.sent {
+    background-color: #dcf8c6;
+    text-align: right;
+    margin-left: auto;
+}
+.received {
+    background-color: #fff;
+    text-align: left;
+    margin-right: auto;
+    border: 1px solid #ccc;
+}
+.time {
+    font-size: 10px;
+    color: #888;
+    display: block;
+    text-align: right;
+}
