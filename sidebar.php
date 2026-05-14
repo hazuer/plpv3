@@ -6,8 +6,7 @@ $display='initial';
 if($pagina=='dashboard'){
    $display='none';
 }
-#$txtchg    = ($_SESSION['uLocation']==2) ? "Tlaquiltenango":"Zacatepec";
-#$txtchgval = ($_SESSION['uLocation']==2) ? 1:2;
+
 $getSelectCatalog = getSelectCatLocation();
 $protocol  = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
 // Host

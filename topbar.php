@@ -165,10 +165,9 @@
 <?php 
 #var_dump($fullSessionLocation); 
 #var_dump("<br>");
-var_dump($_SESSION['uLocation']);
 ?>
 
-<select name="option-location" id="option-location" style="display: block;">
+<select name="option-location" id="option-location" style="display: none;">
     <?php foreach($getSelectCatalog as $loc){ ?>
         <option 
             value="<?php echo $loc['id_location']; ?>"
