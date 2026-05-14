@@ -1,196 +1,242 @@
 <style>
-
     /* =========================
        MODAL
     ========================= */
 
-    #modal-ocr-camera .modal-dialog{
+    #modal-ocr-camera .modal-dialog {
         max-width: 95%;
         width: 95%;
-        margin: 10px auto;
     }
 
-    #modal-ocr-camera .modal-body{
-        padding: 10px;
-        background: #f2f2f2;
+    #modal-ocr-camera .modal-body {
+        padding: 8px;
     }
 
     /* =========================
        LAYOUT
     ========================= */
 
-    .ocr-layout{
+    .ocr-layout {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
-    .ocr-section{
-        background: white;
-        border-radius: 10px;
-        border: 1px solid #ddd;
+    .ocr-section {
+        width: 100%;
+        border: 1px solid #dcdcdc;
+        border-radius: 8px;
         overflow: hidden;
+        background: #fff;
     }
 
     /* =========================
        CAMARA
     ========================= */
 
-    .ocr-camera-section{
-        height: 32vh;
-        min-height: 220px;
-        position: relative;
-        background: black;
+    .ocr-camera-section {
+        height: 23vh;
+        min-height: 180px;
     }
 
-    #video-container-ocr-camera{
+    #video-container-ocr-camera {
         position: relative;
         width: 100%;
         height: 100%;
-        overflow: hidden;
-        background: black;
     }
 
-    #video-ocr-camera{
+    #video-ocr-camera {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         background: black;
-        display: block;
     }
 
     /* =========================
        OVERLAY
     ========================= */
 
-    #ocr-overlay{
+    #ocr-overlay {
         position: absolute;
+        top: 28%;
+        left: 3%;
+        width: 93%;
+        height: 45%;
 
-        top: 30%;
-        left: 5%;
+        border: 3px solid #00ff44;
+        border-radius: 8px;
 
-        width: 90%;
-        height: 35%;
-
-        border: 4px solid #00ff88;
-        border-radius: 12px;
-
-        box-shadow:
-            0 0 0 9999px rgba(0,0,0,0.45);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
 
         pointer-events: none;
     }
 
-    #ocr-overlay-label{
+    #ocr-overlay-label {
         position: absolute;
 
-        top: 18%;
-        left: 5%;
+        top: 6%;
+        left: 10%;
 
-        color: #00ff88;
-        font-size: 14px;
+        color: #00ff44;
+        font-size: 13px;
         font-weight: bold;
 
-        background: rgba(0,0,0,0.6);
+        background: rgba(0, 0, 0, 0.6);
 
-        padding: 5px 10px;
-        border-radius: 6px;
+        padding: 3px 8px;
+        border-radius: 5px;
     }
 
     /* =========================
        PREVIEW
     ========================= */
 
-    .ocr-preview-section{
-        height: 22vh;
-        min-height: 170px;
-
-        display: flex;
-        flex-direction: column;
-
-        padding: 10px;
-        background: #f8f8f8;
+    .ocr-preview-section {
+        padding: 8px;
+        background: #f5f5f5;
     }
 
-    .ocr-preview-container{
-        flex: 1;
+    .ocr-preview-container {
+        width: 100%;
+        height: 140px;
 
         display: flex;
         align-items: center;
         justify-content: center;
-
-        overflow: hidden;
     }
 
-    #canvas-ocr-camera{
+    #canvas-ocr-camera {
         max-width: 100%;
         max-height: 100%;
 
         object-fit: contain;
 
+        border-radius: 6px;
         background: white;
-        border-radius: 8px;
-    }
-
-    .ocr-preview-actions{
-        text-align: center;
-        padding-top: 10px;
     }
 
     /* =========================
-       DATOS OCR
+       QR
     ========================= */
 
-    .ocr-data-section{
-        height: 32vh;
-        min-height: 250px;
+    .ocr-qr-preview {
+        margin-top: 6px;
 
-        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
-        overflow-y: auto;
+        font-size: 14px;
     }
 
-    .ocr-data-item{
-        margin-bottom: 12px;
-    }
-
-    .ocr-data-label{
+    .ocr-qr-label {
         font-weight: bold;
-        color: #444;
-        margin-bottom: 4px;
+        white-space: nowrap;
     }
 
-    .ocr-data-value{
-        min-height: 42px;
+    .ocr-qr-value {
+        flex: 1;
 
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        color: #333;
+    }
+
+    /* =========================
+       BOTONES
+    ========================= */
+
+    .ocr-preview-actions {
+        margin-top: 8px;
+
+        display: flex;
+        justify-content: center;
+    }
+
+    /* =========================
+       DATOS
+    ========================= */
+
+    .ocr-data-section {
         padding: 10px;
+    }
 
-        border-radius: 6px;
+    .ocr-data-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 12px;
+    }
+
+    .ocr-data-item.full-width {
+        grid-column: span 2;
+    }
+
+    .ocr-data-label {
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 3px;
+        color: #444;
+    }
+
+    .ocr-data-value {
+        min-height: 38px;
+
+        padding: 8px;
+
+        background: #f8f8f8;
         border: 1px solid #ddd;
+        border-radius: 6px;
 
-        background: #fafafa;
+        font-size: 13px;
+        color: #222;
+
+        overflow-wrap: break-word;
+    }
+
+    /* =========================
+       GUARDAR
+    ========================= */
+
+    .ocr-save-container {
+        margin-top: 10px;
+
+        display: flex;
+        justify-content: center;
     }
 
     /* =========================
        MOBILE
     ========================= */
 
-    @media(max-width:768px){
+    @media(max-width:768px) {
 
-        .ocr-camera-section{
-            height: 30vh;
-        }
-
-        .ocr-preview-section{
+        .ocr-camera-section {
             height: 20vh;
+            min-height: 160px;
         }
 
-        .ocr-data-section{
-            height: 34vh;
+        .ocr-preview-container {
+            height: 110px;
         }
 
+        .ocr-data-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .ocr-data-value {
+            font-size: 12px;
+            padding: 6px;
+        }
+
+        .ocr-preview-actions button,
+        .ocr-save-container button {
+            padding: 6px 18px;
+            font-size: 14px;
+        }
     }
-
 </style>
 
 <div class="modal fade"
@@ -199,15 +245,16 @@
      role="dialog"
      aria-hidden="true">
 
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-lg"
+         role="document">
 
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header py-2">
 
-                <h3 class="modal-title">
+                <h5 class="modal-title">
                     <span id="modal-ocr-title"></span>
-                </h3>
+                </h5>
 
                 <button id="btn-stop-ocr-camera"
                         type="button"
@@ -224,9 +271,7 @@
 
                 <div class="ocr-layout">
 
-                    <!-- =========================
-                         CAMARA
-                    ========================== -->
+                    <!-- CAMARA -->
 
                     <div class="ocr-section ocr-camera-section">
 
@@ -247,9 +292,7 @@
 
                     </div>
 
-                    <!-- =========================
-                         PREVIEW
-                    ========================== -->
+                    <!-- PREVIEW -->
 
                     <div class="ocr-section ocr-preview-section">
 
@@ -259,11 +302,28 @@
 
                         </div>
 
+                        <!-- QR -->
+
+                        <div class="ocr-qr-preview">
+
+                            <div class="ocr-qr-label">
+                                QR:
+                            </div>
+
+                            <div class="ocr-qr-value"
+                                 id="ocr-qr">
+                                -
+                            </div>
+
+                        </div>
+
+                        <!-- BOTON -->
+
                         <div class="ocr-preview-actions">
 
                             <button id="btn-capture-ocr"
                                     type="button"
-                                    class="btn btn-success btn-lg">
+                                    class="btn btn-success">
 
                                 Capturar
 
@@ -273,38 +333,71 @@
 
                     </div>
 
-                    <!-- =========================
-                         DATOS OCR
-                    ========================== -->
+                    <!-- DATOS -->
 
                     <div class="ocr-section ocr-data-section">
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">QR:</div>
-                            <div class="ocr-data-value" id="ocr-qr">
-                                ---
+                        <div class="ocr-data-grid">
+
+                            <!-- NOMBRE -->
+
+                            <div class="ocr-data-item">
+
+                                <div class="ocr-data-label">
+                                    Nombre:
+                                </div>
+
+                                <div class="ocr-data-value"
+                                     id="ocr-name">
+                                    -
+                                </div>
+
                             </div>
+
+                            <!-- TELEFONO -->
+
+                            <div class="ocr-data-item">
+
+                                <div class="ocr-data-label">
+                                    Teléfono:
+                                </div>
+
+                                <div class="ocr-data-value"
+                                     id="ocr-phone">
+                                    -
+                                </div>
+
+                            </div>
+
+                            <!-- DIRECCION -->
+
+                            <div class="ocr-data-item full-width">
+
+                                <div class="ocr-data-label">
+                                    Dirección:
+                                </div>
+
+                                <div class="ocr-data-value"
+                                     id="ocr-address">
+                                    -
+                                </div>
+
+                            </div>
+
                         </div>
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Nombre:</div>
-                            <div class="ocr-data-value" id="ocr-name">
-                                ---
-                            </div>
-                        </div>
+                        <!-- GUARDAR -->
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Teléfono:</div>
-                            <div class="ocr-data-value" id="ocr-phone">
-                                ---
-                            </div>
-                        </div>
+                        <div class="ocr-save-container">
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Dirección:</div>
-                            <div class="ocr-data-value" id="ocr-address">
-                                ---
-                            </div>
+                            <button id="btn-save-ocr"
+                                    type="button"
+                                    class="btn btn-primary">
+
+                                Guardar
+
+                            </button>
+
                         </div>
 
                     </div>

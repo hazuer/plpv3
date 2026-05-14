@@ -162,10 +162,6 @@
         </div>
     </nav>
 </div>
-<?php 
-#var_dump($fullSessionLocation); 
-#var_dump("<br>");
-?>
 
 <select name="option-location" id="option-location" style="display: none;">
     <?php foreach($getSelectCatalog as $loc){ ?>
