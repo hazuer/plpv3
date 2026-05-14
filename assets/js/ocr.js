@@ -194,7 +194,8 @@ $(document).ready(function () {
                 canvas.height
             );
 
-            capturedImageData = canvas.toDataURL('image/jpeg', 1.0);
+            //capturedImageData = canvas.toDataURL('image/jpeg', 1.0);
+            capturedImageData = canvas.toDataURL('image/png');
 
             console.log('OCR capturado');
 

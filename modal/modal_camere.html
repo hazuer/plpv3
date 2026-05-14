@@ -2,7 +2,6 @@
     /* =========================
        MODAL
     ========================= */
-
     #modal-ocr-camera .modal-dialog {
         max-width: 95%;
         width: 95%;
@@ -15,7 +14,6 @@
     /* =========================
        LAYOUT 3 SECCIONES
     ========================= */
-
     .ocr-layout {
         display: flex;
         flex-direction: column;
@@ -32,12 +30,11 @@
     }
 
     /* =========================
-       30% CAMARA
+       25% CAMARA
     ========================= */
-
     .ocr-camera-section {
-        height: 35vh;
-        min-height: 220px;
+        height: 25vh;
+        min-height: 200px;
     }
 
     #video-container-ocr-camera {
@@ -83,18 +80,29 @@
     }
 
     /* =========================
-       40% PREVIEW
+       45% PREVIEW
     ========================= */
 
     .ocr-preview-section {
-        height: 40vh;
-        min-height: 260px;
+        height: 45vh;
+        min-height: 320px;
 
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
 
         background: #f5f5f5;
+        padding: 15px;
+    }
+
+    .ocr-preview-container {
+        width: 100%;
+        flex: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     #canvas-ocr-camera {
@@ -105,20 +113,39 @@
         background: white;
     }
 
+    .ocr-preview-actions {
+        width: 100%;
+        margin-top: 15px;
+
+        display: flex;
+        justify-content: center;
+    }
+
     /* =========================
        30% DATOS
     ========================= */
 
     .ocr-data-section {
         height: 30vh;
-        min-height: 220px;
+        min-height: 240px;
 
         padding: 15px;
         overflow-y: auto;
     }
 
+    .ocr-data-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
     .ocr-data-item {
-        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ocr-data-item.full-width {
+        grid-column: span 2;
     }
 
     .ocr-data-label {
@@ -135,6 +162,13 @@
         min-height: 45px;
     }
 
+    .ocr-save-container {
+        margin-top: 20px;
+
+        display: flex;
+        justify-content: flex-end;
+    }
+
     /* =========================
        MOBILE
     ========================= */
@@ -142,45 +176,45 @@
     @media(max-width:768px) {
 
         .ocr-camera-section {
-            height: 28vh;
+            height: 22vh;
         }
 
         .ocr-preview-section {
-            height: 25vh;
-            min-height: 180px;
-
-            display: flex;
-            flex-direction: column;
-
-            padding: 10px;
-            background: #f5f5f5;
+            height: 38vh;
+            min-height: 240px;
         }
 
         .ocr-data-section {
-            height: 28vh;
+            height: auto;
+            min-height: auto;
         }
 
+        .ocr-data-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ocr-data-item.full-width {
+            grid-column: span 1;
+        }
+
+        .ocr-save-container {
+            justify-content: center;
+        }
     }
 </style>
 
 <div class="modal fade" id="modal-ocr-camera" tabindex="-1" role="dialog" aria-hidden="true">
-
     <div class="modal-dialog modal-lg" role="document">
-
         <div class="modal-content">
 
             <div class="modal-header">
-
                 <h3 class="modal-title">
                     <span id="modal-ocr-title"></span>
                 </h3>
 
                 <button id="btn-stop-ocr-camera" type="button" class="close" data-dismiss="modal">
-
                     <span>&times;</span>
-
                 </button>
-
             </div>
 
             <div class="modal-body">
@@ -188,9 +222,8 @@
                 <div class="ocr-layout">
 
                     <!-- =========================
-                         CAMARA 30%
+                         CAMARA 25%
                     ========================== -->
-
                     <div class="ocr-section ocr-camera-section">
 
                         <div id="video-container-ocr-camera">
@@ -209,25 +242,18 @@
                     </div>
 
                     <!-- =========================
-                         PREVIEW 40%
+                         PREVIEW 45%
                     ========================== -->
-
                     <div class="ocr-section ocr-preview-section">
 
                         <div class="ocr-preview-container">
-
                             <canvas id="canvas-ocr-camera"></canvas>
-
                         </div>
 
                         <div class="ocr-preview-actions">
-
                             <button id="btn-capture-ocr" type="button" class="btn btn-success btn-lg">
-
                                 Capturar
-
                             </button>
-
                         </div>
 
                     </div>
@@ -235,35 +261,56 @@
                     <!-- =========================
                          DATOS 30%
                     ========================== -->
-
                     <div class="ocr-section ocr-data-section">
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">QR:</div>
-                            <div class="ocr-data-value" id="ocr-qr">
-                                ---
+                        <div class="ocr-data-grid">
+
+                            <div class="ocr-data-item">
+                                <div class="ocr-data-label">
+                                    QR:
+                                </div>
+
+                                <div class="ocr-data-value" id="ocr-qr">
+                                    ---
+                                </div>
                             </div>
+
+                            <div class="ocr-data-item">
+                                <div class="ocr-data-label">
+                                    Nombre:
+                                </div>
+
+                                <div class="ocr-data-value" id="ocr-name">
+                                    ---
+                                </div>
+                            </div>
+
+                            <div class="ocr-data-item">
+                                <div class="ocr-data-label">
+                                    Teléfono:
+                                </div>
+
+                                <div class="ocr-data-value" id="ocr-phone">
+                                    ---
+                                </div>
+                            </div>
+
+                            <div class="ocr-data-item full-width">
+                                <div class="ocr-data-label">
+                                    Dirección:
+                                </div>
+
+                                <div class="ocr-data-value" id="ocr-address">
+                                    ---
+                                </div>
+                            </div>
+
                         </div>
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Nombre:</div>
-                            <div class="ocr-data-value" id="ocr-name">
-                                ---
-                            </div>
-                        </div>
-
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Teléfono:</div>
-                            <div class="ocr-data-value" id="ocr-phone">
-                                ---
-                            </div>
-                        </div>
-
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Dirección:</div>
-                            <div class="ocr-data-value" id="ocr-address">
-                                ---
-                            </div>
+                        <div class="ocr-save-container">
+                            <button id="btn-save-ocr" type="button" class="btn btn-primary btn-lg">
+                                Guardar
+                            </button>
                         </div>
 
                     </div>
@@ -273,7 +320,5 @@
             </div>
 
         </div>
-
     </div>
-
 </div>

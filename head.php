@@ -57,6 +57,7 @@
 <script src="<?php echo BASE_URL;?>/assets/js/functions.js?version=<?php echo time();?>"></script>
 <script src="<?php echo BASE_URL;?>/assets/js/libraries/html5-qrcode.min.js"></script>
 <script src="<?php echo BASE_URL;?>/assets/js/ocr.js?version=<?php echo time();?>"></script>
+<script src="<?php echo BASE_URL;?>/assets/js/qr-ocr-flow.js?version=<?php echo time();?>"></script>
 <style>
 .container-fluid{
   width: 100%;

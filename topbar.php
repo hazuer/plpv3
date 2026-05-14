@@ -126,7 +126,8 @@
             <div class="right_topbar">
                 <div class="icon_info">
                     <ul>
-                        <li><a href="#" id="btn-scan-ocr"><i class="fa fa-mobile blue1_color fa-lg"></i></a></li>
+                        <li><a href="#" id="btn-test"><i class="fa fa-mobile blue1_color fa-lg"></i></a></li>
+                        <!-- <li><a href="#" id="btn-scan-ocr"><i class="fa fa-mobile blue1_color fa-lg"></i></a></li> -->
                         <li><a href="#" id="btn-scan-qr"><i class="fa fa-qrcode blue1_color fa-lg"></i></a></li>
                         <?php 
                         if($totalMensajeSinLeer>0){

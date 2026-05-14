@@ -50,7 +50,7 @@
                             <select name="mTselectTemplate" id="mTselectTemplate" class="form-control" disabled>
                                 <option value="99">Selecciona</option>
                                 <?php foreach ($template as $row): ?>
-                                    <option value="<?= $row['id_template']; ?>">
+                                    <option value="<?= $row['id_template'];?>" data-parcel="<?= $row['id_cat_parcel']; ?>">
                                         <?= htmlspecialchars($row['name']); ?>
                                     </option>
                                 <?php endforeach; ?>

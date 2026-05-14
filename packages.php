@@ -338,7 +338,8 @@ $templateMsj   = $user[0]['template'];
 		include('modal/sms-report.php');
 		include('modal/evidence.php');
 		include('modal/evidence-camera.php');
-		include('modal/ocr-camera.php');
+		//include('modal/ocr-camera.php');
+		include('modal/qr-ocr.php');
 		require_once('footer.php');
       ?>
    </body>

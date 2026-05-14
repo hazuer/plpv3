@@ -119,7 +119,7 @@ if(isset($rParcel)){
                                                 $end_datetime = $current_date . ' 23:59:59';
 
                                                 // Consulta SQL
-                                                echo $sql = "SELECT 
+                                                $sql = "SELECT 
                                                     p.id_status,
                                                     s.status_desc,
                                                     COUNT(*) AS count,

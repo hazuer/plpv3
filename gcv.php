@@ -1,9 +1,5 @@
 <?php
 
-//ini_set('display_errors', 1);
-//ini_set('display_startup_errors', 1);
-//error_reporting(E_ALL);
-
 header('Content-Type: application/json');
 
 require __DIR__ . '/vendor/autoload.php';
@@ -19,7 +15,6 @@ use Zxing\QrReader;
 // =========================================
 // LOG
 // =========================================
-
 function writeLog($message)
 {
     file_put_contents(
@@ -48,7 +43,6 @@ try {
     // =====================================
 
     if (!isset($_POST['image'])) {
-
         throw new Exception('Imagen no recibida');
 
     }
@@ -69,7 +63,7 @@ try {
 
     }
 
-    //writeLog('Extension detectada: ' . $extension);
+    writeLog('Extension detectada: ' . $extension);
 
     // =====================================
     // LIMPIAR BASE64
@@ -153,7 +147,9 @@ try {
     // FEATURE OCR
     $feature = new Feature();
 
-    $feature->setType(Type::TEXT_DETECTION);
+    $feature->setType(
+        Type::DOCUMENT_TEXT_DETECTION
+    );
 
     // REQUEST
     $annotateRequest = new AnnotateImageRequest();
@@ -167,11 +163,9 @@ try {
 
     $batchRequest->setRequests([$annotateRequest]);
 
-    //writeLog('Ejecutando OCR');
-
-    $response = $imageAnnotator->batchAnnotateImages($batchRequest);
-
-    //writeLog('OCR ejecutado');
+    $response = $imageAnnotator->batchAnnotateImages(
+        $batchRequest
+    );
 
     $responses = $response->getResponses();
 
@@ -179,11 +173,12 @@ try {
 
     if (count($responses) > 0) {
 
-        $texts = $responses[0]->getTextAnnotations();
+        $annotation = $responses[0]
+            ->getFullTextAnnotation();
 
-        if (count($texts) > 0) {
+        if ($annotation) {
 
-            $fullText = $texts[0]->getDescription();
+            $fullText = $annotation->getText();
 
             writeLog('Texto detectado');
 
@@ -225,6 +220,7 @@ try {
             );
 
             $phone = $matches[0];
+            $phone = substr($phone, -10);
 
             //writeLog('Telefono detectado: ' . $phone);
 
