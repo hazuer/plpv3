@@ -789,7 +789,6 @@ $(document).ready(function () {
 		}
 
 		let formData = new FormData();
-		// formData.append('id_location', idLocationSelected.val());
 		formData.append('idTemplateMsj', idTemplateMsj);
 		formData.append('mTTemplate', $('#mTTemplate').val());
 		formData.append('option', 'saveTemplate');

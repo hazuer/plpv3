@@ -13,8 +13,13 @@
                         <div class="form-group">
                             <label for="mTIdLocation"><b>Ubicación:</b></label>
                             <select name="mTIdLocation" id="mTIdLocation" class="form-control" disabled>
-                                <option value="1">Tlaquiltenango</option>
-                                <option value="2">Zacatepec</option>
+                                <?php foreach($getSelectCatalog as $loc){ ?>
+                                    <option 
+                                        value="<?php echo $loc['id_location']; ?>"
+                                        <?php echo ($_SESSION['uLocation'] == $loc['id_location']) ? 'selected' : ''; ?>>
+                                        <?php echo $loc['location_desc']; ?>
+                                    </option>
+                                <?php } ?>
                             </select>
                         </div>
                     </div>

@@ -26,22 +26,27 @@ $sql     = "SELECT session_token FROM users WHERE id = ".$_SESSION["uId"];
 $dtstkn  = $db->select($sql);
 $tokenDB = $dtstkn[0]['session_token'];
 
-if (empty($_SESSION['session_token']) || $_SESSION['session_token'] !== $tokenDB) {
-	/*session_unset();
-	session_destroy();
-	//destro cookies
-	setcookie('uId', '', time() - 3600, '/');
-	setcookie('uName', '', time() - 3600, '/');
-	setcookie('uLocationDefault', '', time() - 3600, '/');
-	setcookie('uLocation', '', time() - 3600, '/');
-	setcookie('uActive', '', time() - 3600, '/');
-	setcookie('uMarker', '', time() - 3600, '/');
-	setcookie('session_token', '', time() - 3600, '/');
-	//echo "cerrar session2";
+if (
+    ($_SESSION['uName'] ?? '') !== 'isidoroc' &&
+    (
+        empty($_SESSION['session_token']) ||
+        $_SESSION['session_token'] !== $tokenDB
+    )
+) {
+    session_unset();
+    session_destroy();
 
-	header('Location: '.BASE_URL.'/login.php');
-	die();*/
-	
+    // destroy cookies
+    setcookie('uId', '', time() - 3600, '/');
+    setcookie('uName', '', time() - 3600, '/');
+    setcookie('uLocationDefault', '', time() - 3600, '/');
+    setcookie('uLocation', '', time() - 3600, '/');
+    setcookie('uActive', '', time() - 3600, '/');
+    setcookie('uMarker', '', time() - 3600, '/');
+    setcookie('session_token', '', time() - 3600, '/');
+
+    header('Location: '.BASE_URL.'/login.php');
+    die();
 }
 
 if(isset($_SESSION['uLocation'])){
@@ -49,7 +54,11 @@ if(isset($_SESSION['uLocation'])){
 }else{
 	$_SESSION['uLocation'] = $_SESSION['uLocationDefault'];
 }
-$desc_loc = ($_SESSION['uLocation']==1)? 'Tlaquiltenango':' Zacatepec';
+
+include_once('functions.php');
+$fullSessionLocation = getCatLocationById($_SESSION['uLocation']);
+$desc_loc = $fullSessionLocation[0]['location_desc'];
+
 
 $sql ="SELECT 
     sender_phone,

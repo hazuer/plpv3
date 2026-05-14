@@ -100,7 +100,22 @@
                                  <?php 
 								}
 								?>
-                                <a class="dropdown-item" href="#" id="option-location-2" data-slocation="<?php echo $txtchgval; ?>" data-slocationd="<?php echo $txtchg;?>"><span>Cambiar a <?php echo $txtchg;?></span></a>
+                                <?php foreach($getSelectCatalog as $loc){ ?>
+
+                                <?php if($loc['id_location'] != $_SESSION['uLocation']){ ?>
+
+                                    <a 
+                                        class="dropdown-item option-location-change" 
+                                        href="#"
+                                        data-slocation="<?php echo $loc['id_location']; ?>"
+                                        data-slocationd="<?php echo $loc['location_desc']; ?>"
+                                    >
+                                        <span><?php echo $loc['location_desc']; ?></span>
+                                    </a>
+
+                                <?php } ?>
+
+                            <?php } ?>
                             </div>
                         </li>
                     </ul>
@@ -126,7 +141,19 @@
                             <a class="dropdown-toggle" data-toggle="dropdown">
                                 <span class="name_user"><?php echo $desc_loc;?></span></a>
                               <div class="dropdown-menu">
-                                <a class="dropdown-item" href="#" id="option-location-1" data-slocation="<?php echo $txtchgval; ?>" data-slocationd="<?php echo $txtchg;?>"><span><?php echo $txtchg;?></span></a>
+                                <?php foreach($getSelectCatalog as $loc){ ?>
+                                <?php if($loc['id_location'] != $_SESSION['uLocation']){ ?>
+                                    <a 
+                                        class="dropdown-item option-location-change" 
+                                        href="#"
+                                        data-slocation="<?php echo $loc['id_location']; ?>"
+                                        data-slocationd="<?php echo $loc['location_desc']; ?>"
+                                    >
+                                        <span><?php echo $loc['location_desc']; ?></span>
+                                    </a>
+                                <?php } ?>
+
+                            <?php } ?>
                             </div>
                         </li>
                     </ul>
@@ -135,7 +162,19 @@
         </div>
     </nav>
 </div>
-<select name="option-location" id="option-location" style="display: none;" >
-    <option value="1" <?php echo ($_SESSION['uLocation']==1) ? 'selected': ''; ?> >TLQ</option>
-    <option value="2" <?php echo ($_SESSION['uLocation']==2) ? 'selected': ''; ?> >ZAC</option>
+<?php 
+#var_dump($fullSessionLocation); 
+#var_dump("<br>");
+var_dump($_SESSION['uLocation']);
+?>
+
+<select name="option-location" id="option-location" style="display: block;">
+    <?php foreach($getSelectCatalog as $loc){ ?>
+        <option 
+            value="<?php echo $loc['id_location']; ?>"
+            <?php echo ($_SESSION['uLocation'] == $loc['id_location']) ? 'selected' : ''; ?>>
+            <?php echo $loc['location_desc']; ?>
+        </option>
+    <?php } ?>
+
 </select>

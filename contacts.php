@@ -135,7 +135,7 @@ $contacts = $db->select($sql);
 										</thead>
 										<tbody>
 											<?php foreach($contacts as $d):
-											$ubicacion = ($d['id_location']==1)? 'Tlaquiltenango':' Zacatepec';
+											$ubicacion = $fullSessionLocation[0]['location_desc'];
 											?>
 												<tr>
 												<td><?php echo $d['id_contact']; ?></td>
