@@ -9,6 +9,14 @@ use Google\Cloud\Vision\V1\Feature\Type;
 use Google\Cloud\Vision\V1\Image;
 
 header('Content-Type: application/json');
+switch ($_POST['action']) {
+    case 'processImage':
+        processImage();
+        break;
+    case 'saveDataOcr':
+        saveDataOcr();
+        break;
+}
 
 // =====================================================
 // LOG
@@ -24,6 +32,7 @@ function writeLog($message) {
     );
 }
 
+function processImage(){
 // =========================================
 // CREDENCIALES
 // =========================================
@@ -178,8 +187,7 @@ try {
         'text' => $fullText,
         'name' => $name,
         'phone' => $phone,
-        'address' => $address
-
+        'address' => $address,
     ]);
 
 } catch (Throwable $e) {
@@ -192,4 +200,36 @@ try {
         'line' => $e->getLine(),
         'file' => $e->getFile()
     ]);
+}
+}
+
+
+function saveDataOcr(){
+
+    $qr = $_POST['qr'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $address = $_POST['address'] ?? '';
+
+    // =========================================
+    // GUARDAR EN BD
+    // =========================================
+
+    // ejemplo temporal
+    $initial = 'A';
+    $folio = rand(100,999);
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Datos guardados correctamente',
+
+        'initial' => $initial,
+        'folio' => $folio,
+
+        'qr' => $qr,
+        'name' => $name,
+        'phone' => $phone,
+        'address' => $address
+    ]);
+
 }

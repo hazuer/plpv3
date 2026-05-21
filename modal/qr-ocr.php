@@ -65,7 +65,7 @@ OCR MODAL
 #ocr-overlay-label{
     position:absolute;
     top:3%;
-    left:25%;
+    left:23%;
     color:#00ff44;
     /*background:rgba(0,0,0,.6);*/
     padding:4px 8px;
@@ -114,10 +114,62 @@ OCR MODAL
     font-size:13px;
 }
 .ocr-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    align-items:center;
+    width:100%;
     margin-top:12px;
+    margin-bottom: 10px;
+}
+
+.ocr-action-left{
+    display:flex;
+    justify-content:flex-start;
+}
+
+.ocr-action-center{
     display:flex;
     justify-content:center;
-    gap:10px;
+}
+
+.ocr-action-right{
+    display:flex;
+    justify-content:flex-end;
+}
+.ocr-actions .btn,
+.ocr-actions .btn-center{
+    border:none !important;
+    outline:none !important;
+    box-shadow:none !important;
+}
+
+.ocr-actions .btn:focus,
+.ocr-actions .btn:active,
+.ocr-actions .btn-center:focus,
+.ocr-actions .btn-center:active{
+    outline:none !important;
+    box-shadow:none !important;
+}
+
+.ocr-actions .btn{
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    padding:0;
+}
+.ocr-actions .btn-center{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    padding:0;
 }
 @media(max-width:768px){
 
@@ -139,6 +191,34 @@ OCR MODAL
 
 .full-width .ocr-data-value{
     width:100%;
+}
+
+.ocr-info{
+    font-size:13px;
+    line-height:1.3;
+    margin-bottom:10px;
+}
+
+.ocr-info-row{
+    margin-bottom:4px;
+    word-break:break-word;
+}
+
+.ocr-info-row strong{
+    color:#111;
+}
+.ocr-show-result .badge{
+    font-size:15px;
+    padding:10px 18px;
+    /*margin:3px;
+    border-radius:8px;*/
+}
+.ocr-show-result{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    /*margin-bottom:10px;*/
 }
 </style>
 
@@ -171,34 +251,81 @@ OCR MODAL
                         <div class="ocr-preview-container">
                             <canvas id="canvas-ocr-camera"></canvas>
                         </div>
-                        <div style="margin-top:10px;">
-                            <strong>QR:</strong>
-                            <span id="ocr-qr">-</span>
-                        </div>
-
                     </div>
-                    <!-- DATA -->
-                    <div class="ocr-data-grid">
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Nombre</div>
-                            <div class="ocr-data-value" id="ocr-name">-</div>
-                        </div>
 
-                        <div class="ocr-data-item">
-                            <div class="ocr-data-label">Teléfono</div>
-                            <div class="ocr-data-value" id="ocr-phone">-</div>
-                        </div>
+                                    <!-- RESULTADO -->
+                <div class="ocr-show-result"
+                     id="ocr-show-result">
 
-                        <div class="ocr-data-item full-width">
-    <div class="ocr-data-label">Dirección</div>
-    <div class="ocr-data-value" id="ocr-address">-</div>
-</div>
+                    <span class="badge badge-success"
+                          id="ocr-initial">
+                        A
+                    </span>
 
+                    <span class="badge badge-primary"
+                          id="ocr-folio">
+                        127
+                    </span>
+
+                </div>
+                                   <!-- QR -->
+                <div class="ocr-info">
+
+                    <div class="ocr-info-row">
+                        <strong>QR:</strong>
+                        <span id="ocr-qr">-</span>
                     </div>
+
+                    <div class="ocr-info-row">
+                        <strong>Nombre:</strong>
+                        <span id="ocr-name">-</span>
+                    </div>
+
+                    <div class="ocr-info-row">
+                        <strong>Tel:</strong>
+                        <span id="ocr-phone">-</span>
+                    </div>
+
+                    <div class="ocr-info-row">
+                        <strong>Dir:</strong>
+                        <span id="ocr-address">-</span>
+                    </div>
+
+                </div>
+
                     <div class="ocr-actions">
-                        <button id="btn-save-ocr" class="btn btn-primary"><i class="fa fa-floppy-o" aria-hidden="true"></i></button>
-                        <button id="btn-capture-ocr" class="btn btn-success"><i class="fa fa-camera" aria-hidden="true"></i></button>
-                    </div>
+
+    <div class="ocr-action-left">
+        <button type="button"
+                class="btn btn-primary"
+                id="btn-save-ocr">
+
+            <i class="fa fa-save"></i>
+
+        </button>
+    </div>
+
+    <div class="ocr-action-center">
+        <button type="button"
+                class="btn-center btn-success"
+                id="btn-capture-ocr">
+
+            <i class="fa fa-camera"></i>
+
+        </button>
+    </div>
+
+    <div class="ocr-action-right">
+        <button type="button"
+                class="btn btn-warning"
+                id="btn-next-ocr">
+
+            <i class="fa fa-arrow-right"></i>
+
+        </button>
+    </div>
+
+</div>
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@
 includes/configuration.php
 
 # Dependencies
-nodejs/node_modules
+nodejs/*
 vendor/
 
 # VS Code configuration

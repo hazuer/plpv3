@@ -1,4 +1,5 @@
 $(document).ready(function () {
+    let ocrSaved = false;
 
     let html5QrCode = null;
     let qrDetected = '';
@@ -385,6 +386,7 @@ $(document).ready(function () {
         formData.append('image', imageBase64);
 
         formData.append('qr', qrDetected);
+        formData.append('action', 'processImage');
 
         $.ajax({
 
@@ -467,6 +469,7 @@ $(document).ready(function () {
     $('#btn-close-ocr-modal')
         .off('click')
         .on('click', function () {
+        document.activeElement.blur();
 
             stopCamera();
 
@@ -481,6 +484,7 @@ $(document).ready(function () {
     $('#btn-close-qr-modal')
         .off('click')
         .on('click', async function () {
+        document.activeElement.blur();
 
             await stopQrScanner();
 
@@ -568,6 +572,10 @@ $(document).ready(function () {
 
         $('#ocr-address').html('-');
 
+        $('#ocr-initial').html('');
+        $('#ocr-folio').html('');
+        $('#ocr-save-result').hide();
+
         const canvas = document.getElementById(
             'canvas-ocr-camera'
         );
@@ -592,16 +600,19 @@ $(document).ready(function () {
     // =====================================================
 
     async function resetQrOcrFlow() {
+ocrSaved = false;
+$('#btn-save-ocr').prop('disabled', false);
 
+$('#btn-capture-ocr').prop('disabled', false);
         resetLabels();
-
         stopCamera();
+        $('#btn-save-ocr').prop('disabled', false);
+        $('#btn-capture-ocr').prop('disabled', false);
 
         await stopQrScanner();
-
         $('#modal-ocr-camera').modal('hide');
-
         $('#modal-scan-qr-ocr').modal('hide');
+        $('#ocr-save-result').hide();
 
         setTimeout(function () {
 
@@ -611,6 +622,74 @@ $(document).ready(function () {
 
     }
 
+async function saveDataOcr(){
+alert('iniciando guardado');
+    if(ocrSaved){
+    return;
+}
+alert('leyendo datos...');
+    const qr      = $('#ocr-qr').text().trim();
+    const name    = $('#ocr-name').text().trim();
+    const phone   = $('#ocr-phone').text().trim();
+    const address = $('#ocr-address').text().trim();
+
+    
+        let formData = new FormData();
+
+        formData.append('qr', qr);
+        formData.append('name', name);
+        formData.append('phone', phone);
+        formData.append('address', address);
+
+        formData.append('action', 'saveDataOcr');
+
+    $.ajax({
+
+        url: `${base_url}/controllers/ocrRecipient.php`,
+        type: 'POST',
+        dataType: 'json',
+
+        data: formData,
+        processData: false,
+        contentType: false,
+
+        beforeSend: function(){
+            alert('enviando datos...');
+
+            $('#btn-save-ocr').prop('disabled', true);
+
+        },
+
+       success:function(response){
+
+    console.log(response);
+
+    if(response.success){
+
+        $('#ocr-initial').text(response.initial);
+        $('#ocr-folio').text(response.folio);
+
+        $('#ocr-save-result').show();
+
+        $('#btn-capture-ocr').prop('disabled', true);
+
+    }
+
+},
+        error: function(xhr){
+
+            console.error(xhr);
+
+            alert('Error de conexión');
+
+            $('#btn-save-ocr').prop('disabled', false);
+
+        }
+
+    });
+
+}
+
     // =====================================================
     // SAVE OCR
     // =====================================================
@@ -618,11 +697,15 @@ $(document).ready(function () {
     $('#btn-save-ocr')
         .off('click')
         .on('click', function () {
-
-            // guardar aquí...
-
-            resetQrOcrFlow();
-
+            alert('clicked save');
+            saveDataOcr();
         });
 
+    $('#btn-next-ocr')
+        .off('click')
+        .on('click', function () {
+            resetQrOcrFlow();
+        });
+
+        
 });
