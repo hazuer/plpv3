@@ -54,20 +54,20 @@ OCR MODAL
 }
 #ocr-overlay{
     position:absolute;
-    top:28%;
-    left:3%;
-    width:93%;
-    height:45%;
-    border:3px solid #00ff44;
+    top:15%;
+    left:10%;
+    width:80%;
+    height:70%;
+    border:2px solid #00ff44;
     border-radius:8px;
     box-shadow:0 0 0 9999px rgba(0,0,0,.45);
 }
 #ocr-overlay-label{
     position:absolute;
-    top:8%;
-    left:10%;
+    top:3%;
+    left:25%;
     color:#00ff44;
-    background:rgba(0,0,0,.6);
+    /*background:rgba(0,0,0,.6);*/
     padding:4px 8px;
     border-radius:5px;
     font-size:13px;
@@ -124,12 +124,21 @@ OCR MODAL
     .ocr-camera-section{
         height:20vh;
     }
+
     .ocr-data-grid{
-        grid-template-columns:1fr;
+        grid-template-columns:1fr 1fr;
     }
+
     .ocr-data-item.full-width{
-        grid-column:auto;
+        grid-column:1 / -1;
     }
+}
+.full-width{
+    grid-column:1 / -1;
+}
+
+.full-width .ocr-data-value{
+    width:100%;
 }
 </style>
 
@@ -174,18 +183,21 @@ OCR MODAL
                             <div class="ocr-data-label">Nombre</div>
                             <div class="ocr-data-value" id="ocr-name">-</div>
                         </div>
+
                         <div class="ocr-data-item">
                             <div class="ocr-data-label">Teléfono</div>
                             <div class="ocr-data-value" id="ocr-phone">-</div>
                         </div>
+
                         <div class="ocr-data-item full-width">
-                            <div class="ocr-data-label">Dirección</div>
-                            <div class="ocr-data-value" id="ocr-address">-</div>
-                        </div>
+    <div class="ocr-data-label">Dirección</div>
+    <div class="ocr-data-value" id="ocr-address">-</div>
+</div>
+
                     </div>
                     <div class="ocr-actions">
-                        <button id="btn-capture-ocr" class="btn btn-success">Capturar</button>
-                        <button id="btn-save-ocr" class="btn btn-primary">Guardar</button>
+                        <button id="btn-save-ocr" class="btn btn-primary"><i class="fa fa-floppy-o" aria-hidden="true"></i></button>
+                        <button id="btn-capture-ocr" class="btn btn-success"><i class="fa fa-camera" aria-hidden="true"></i></button>
                     </div>
                 </div>
             </div>
