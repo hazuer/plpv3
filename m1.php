@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 define('_VALID_MOS', 1);
@@ -36,7 +35,8 @@ LEFT JOIN cat_status cs ON cs.id_status=p.id_status
 LEFT JOIN cat_parcel cp ON cp.id_cat_parcel=p.id_cat_parcel 
 WHERE 1 
 AND p.id_location IN ($id_location)
-AND p.id_status IN(1,2,5,6,7,8)";
+AND p.id_status IN(1,2,5,6,7,8)
+LIMIT 10";
 
 $packages = $db->select($sql);
 ?>
@@ -46,112 +46,87 @@ $packages = $db->select($sql);
 
 <head>
 
-    <?php include_once('head.php'); ?>
+<?php include_once('head.php'); ?>
 
-    <style>
+<style>
 
-        .panel-control{
-            background:#fff;
-            border-radius:12px;
-            padding:20px;
-            box-shadow:0 2px 10px rgba(0,0,0,.08);
-        }
-
-        #mapa-entregas{
-            width:100%;
-            height:700px;
-            border-radius:12px;
-            overflow:hidden;
-            background:#f5f5f5;
-        }
-
-        .form-group{
-            margin-bottom:18px;
-        }
-
-        .btn-block{
-            width:100%;
-        }
-
-        .alert{
-            font-size:14px;
-            font-weight:600;
-        }
-
-        @media(max-width:768px){
-
-            #mapa-entregas{
-                height:500px;
-                margin-top:20px;
-            }
-
-        }
-#mapLoader{
-
-    position:absolute;
-
-    top:0;
-
-    left:0;
-
-    width:100%;
-
-    height:700px;
-
-    background:rgba(255,255,255,.92);
-
-    z-index:999;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
+.panel-control{
+    background:#fff;
     border-radius:12px;
+    padding:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
 
+#mapa-entregas{
+    width:100%;
+    height:700px;
+    border-radius:12px;
+    overflow:hidden;
+    background:#f5f5f5;
+}
+
+.form-group{
+    margin-bottom:18px;
+}
+
+.btn-block{
+    width:100%;
+}
+
+.alert{
+    font-size:14px;
+    font-weight:600;
+}
+
+#mapLoader{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:700px;
+    background:rgba(255,255,255,.92);
+    z-index:999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
 }
 
 .loader-content{
-
     text-align:center;
-
     font-size:18px;
-
     font-weight:600;
-
 }
 
 .custom-spinner{
-
     width:70px;
-
     height:70px;
-
     border:7px solid #e5e5e5;
-
     border-top:7px solid #007bff;
-
     border-radius:50%;
-
     animation:spin 1s linear infinite;
-
     margin:auto;
-
 }
 
 @keyframes spin{
-
     0%{
         transform:rotate(0deg);
     }
-
     100%{
         transform:rotate(360deg);
     }
+}
+
+@media(max-width:768px){
+
+    #mapa-entregas{
+        height:500px;
+        margin-top:20px;
+    }
 
 }
-    </style>
+
+</style>
 
 </head>
 
@@ -159,136 +134,158 @@ $packages = $db->select($sql);
 
 <div class="full_container">
 
-    <div class="inner_container">
+<div class="inner_container">
 
-        <!-- Sidebar -->
-        <?php include_once('sidebar.php'); ?>
+<?php include_once('sidebar.php'); ?>
 
-        <!-- right content -->
-        <div id="content">
+<div id="content">
 
-            <!-- topbar -->
-            <?php include_once('topbar.php'); ?>
+<?php include_once('topbar.php'); ?>
 
-            <!-- dashboard inner -->
-            <div class="midde_cont">
+<div class="midde_cont">
 
-                <div class="container-fluid">
-                     <div class="row" style="margin-bottom: 15px;"></div>
+<div class="container-fluid">
+
+<div class="row" style="margin-bottom:15px;"></div>
+
+<div class="row">
+
+<!-- PANEL -->
+<div class="col-md-3">
+
+<div class="panel-control">
+
+<h4 class="mb-4">
+P. de control - <?php echo count($packages); ?> paquetes cargados
+</h4>
+
+<div class="row">
+
+    <!-- FILTRO -->
+    <div class="col-md-6">
+        <div class="form-group">
+            <label for="filtroCP">
+                <b>Código Postal</b>
+            </label>
+            <select
+                id="filtroCP"
+                class="form-control"
+            >
+                <option value="all">
+                    Selecciona
+                </option>
+            </select>
+        </div>
+    </div>
+
+    <!-- SELECCIONAR -->
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>
+                <b>&nbsp;</b>
+            </label>
+            <button
+                id="btnSeleccionarCP"
+                class="btn btn-success btn-block"
+            >
+                <i class="fa fa-check"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- DESMARCAR -->
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>
+                <b>&nbsp;</b>
+            </label>
+            <button
+                id="btnDesmarcar"
+                class="btn btn-danger btn-block"
+            >
+                <i class="fa fa-remove"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<div
+    id="contadorSeleccionados"
+    class="alert alert-info text-center"
+>
+    0 paquetes seleccionados
+</div>
+<div class="row">
+
+    <!-- FILTRO -->
+    <div class="col-md-6">
+<!-- REPARTIDOR -->
+<div class="form-group">
+<label for="repartidorSelect">
+<b>Seleccionar repartidor</b>
+</label>
+<select
+    id="repartidorSelect"
+    class="form-control"
+>
+    <option value="">
+        Seleccionar
+    </option>
+    <option value="repartidor_1">
+        repartidor_1
+    </option>
+    <option value="repartidor_2">
+        repartidor_2
+    </option>
+</select>
+</div>
+    </div>
+<div class="col-md-6">
+<!-- ASIGNAR -->
+<div class="form-group">
+     <label>
+                <b>&nbsp;</b>
+            </label>
+<button
+    id="btnAsignar"
+    class="btn btn-success btn-block"
+    disabled
+>
+    Asignar paquetes
+</button>
+</div>
+</div>
+</div>
 
 
-                    <!-- CONTENIDO -->
-                    <div class="row">
+<!-- CONTADORES -->
 
-                        <!-- PANEL -->
-                        <div class="col-md-3">
+<div
+    id="contadorNotificaciones"
+    class="alert alert-success text-center"
+>
+    WhatsApp: 0 Notif. para enviar
+</div>
+<!-- ALERTAS -->
+<div class="alert alert-warning text-center">
+⚠ Sin localización exacta
+</div>
 
-                            <div class="panel-control">
+<div class="alert alert-info text-center">
+📍 Dirección confirmada
+</div>
 
-                                <h4 class="mb-4">
-                                    Panel de control
-                                </h4>
 
-                                <!-- FILTRO -->
-                                <div class="form-group">
+</div>
 
-                                    <label for="filtroCP">
-                                        <b>Código Postal</b>
-                                    </label>
+</div>
 
-                                    <select
-                                        id="filtroCP"
-                                        class="form-control"
-                                    >
-                                        <option value="all">
-                                            Todos los CP
-                                        </option>
-                                    </select>
+<!-- MAPA -->
+<div class="col-md-9" style="position:relative;">
 
-                                </div>
+<div id="mapa-entregas"></div>
 
-                                <!-- BOTON -->
-                                <div class="form-group">
-
-                                    <button
-                                        id="btnSeleccionarCP"
-                                        class="btn btn-primary btn-block"
-                                    >
-                                        Seleccionar CP
-                                    </button>
-
-                                </div>
-
-                                <!-- REPARTIDOR -->
-                                <div class="form-group">
-
-                                    <label for="repartidorSelect">
-                                        <b>Seleccionar repartidor</b>
-                                    </label>
-
-                                    <select
-                                        id="repartidorSelect"
-                                        class="form-control"
-                                    >
-
-                                        <option value="">
-                                            Seleccionar
-                                        </option>
-
-                                        <option value="repartidor_1">
-                                            repartidor_1
-                                        </option>
-
-                                        <option value="repartidor_2">
-                                            repartidor_2
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                                <!-- ASIGNAR -->
-                                <div class="form-group">
-
-                                    <button
-                                        id="btnAsignar"
-                                        class="btn btn-success btn-block"
-                                        disabled
-                                    >
-                                        Asignar paquetes
-                                    </button>
-
-                                </div>
-
-                                <!-- ALERTAS -->
-                                <div
-                                    class="alert alert-warning text-center"
-                                >
-                                    ⚠ Sin localización exacta
-                                </div>
-
-                                <div
-                                    class="alert alert-info text-center"
-                                >
-                                    📍 Dirección confirmada
-                                </div>
-
-                                <!-- CONTADOR -->
-                                <div
-                                    id="contadorSeleccionados"
-                                    class="alert alert-secondary text-center"
-                                >
-                                    0 seleccionados
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- MAPA -->
-                        <div class="col-md-9">
-
-                            <div id="mapa-entregas"></div>
 <div id="mapLoader">
 
     <div class="loader-content">
@@ -305,17 +302,18 @@ $packages = $db->select($sql);
     </div>
 
 </div>
-                        </div>
 
-                    </div>
+</div>
 
-                </div>
+</div>
 
-            </div>
+</div>
 
-        </div>
+</div>
 
-    </div>
+</div>
+
+</div>
 
 </div>
 
@@ -331,28 +329,30 @@ async function iniciarMapaRuta() {
     // VARIABLES
     // =========================
 
-    const cpsJojutla = [
-        "62900","62905","62906","62907",
-        "62908","62909","62910","62912",
-        "62913","62914","62915","62916",
-        "62917"
-    ];
-
-    let fueraMorelos = 0;
-    let fueraJojutla = 0;
-
     let markers = [];
     let paquetesValidos = [];
     let seleccionados = [];
 
     // =========================
-    // LLENAR SELECT CP
+    // OBTENER CP DISPONIBLES
+    // =========================
+
+    const cpsDisponibles = [
+        ...new Set(
+            paquetesRaw
+                .map(pkg => String(pkg.cp || "").trim())
+                .filter(cp => cp !== "")
+        )
+    ].sort();
+
+    // =========================
+    // LLENAR SELECT
     // =========================
 
     const filtroCP =
         document.getElementById("filtroCP");
 
-    cpsJojutla.forEach(cp => {
+    cpsDisponibles.forEach(cp => {
 
         filtroCP.innerHTML += `
             <option value="${cp}">
@@ -389,7 +389,8 @@ async function iniciarMapaRuta() {
         }
     );
 
-    const geocoder = new google.maps.Geocoder();
+    const geocoder =
+        new google.maps.Geocoder();
 
     const infoWindow =
         new google.maps.InfoWindow();
@@ -405,13 +406,14 @@ async function iniciarMapaRuta() {
 
         const pkg = paquetesRaw[i];
 
+        document.getElementById(
+            "loaderText"
+        ).innerHTML =
+            `Mapeando ${i + 1} de ${paquetesRaw.length}`;
+
         if (!pkg.address || pkg.address.trim() === "") {
             continue;
         }
-        document.getElementById(
-    "loaderText"
-).innerHTML =
-    `Mapeando ${i + 1} de ${paquetesRaw.length}`;
 
         const direccion =
             `${pkg.address}, ${pkg.cp || ""}, México`;
@@ -433,52 +435,15 @@ async function iniciarMapaRuta() {
             const result =
                 response.results[0];
 
-            const components =
-                result.address_components;
-
-            const estadoComp =
-                components.find(comp =>
-                    comp.types.includes(
-                        "administrative_area_level_1"
-                    )
-                );
-
-            const estado =
-                estadoComp
-                ? estadoComp.long_name
-                : "";
-
-            // =========================
-            // VALIDAR MORELOS
-            // =========================
-
-            if (
-                estado.toLowerCase() !== "morelos"
-            ) {
-
-                fueraMorelos++;
-
-                continue;
-            }
-
-            // =========================
-            // VALIDAR CP
-            // =========================
-
-            const cpPaquete =
-                String(pkg.cp).trim();
-
-            if (
-                !cpsJojutla.includes(cpPaquete)
-            ) {
-
-                fueraJojutla++;
-
-                continue;
-            }
-
             const location =
                 result.geometry.location;
+
+            const cpPaquete =
+                String(pkg.cp || "").trim();
+
+            if (!cpPaquete) {
+                continue;
+            }
 
             // =========================
             // MARCADOR
@@ -562,10 +527,6 @@ async function iniciarMapaRuta() {
 
             });
 
-            // =========================
-            // DOBLE CLICK
-            // =========================
-
             marker.addListener("dblclick", () => {
 
                 toggleSeleccion(
@@ -601,9 +562,14 @@ async function iniciarMapaRuta() {
         mapa.fitBounds(bounds);
 
     }
+
+    // =========================
+    // REMOVER LOADER
+    // =========================
+
     document
-    .getElementById("mapLoader")
-    .remove();
+        .getElementById("mapLoader")
+        .remove();
 
     // =========================
     // FUNCION SELECCIONAR
@@ -665,7 +631,12 @@ async function iniciarMapaRuta() {
         document.getElementById(
             "contadorSeleccionados"
         ).innerHTML =
-            `${seleccionados.length} seleccionados`;
+            `${seleccionados.length} paquetes seleccionados`;
+
+        document.getElementById(
+            "contadorNotificaciones"
+        ).innerHTML =
+            `WhatsApp: ${seleccionados.length} notificaciones`;
 
         document.getElementById(
             "btnAsignar"
@@ -769,6 +740,31 @@ async function iniciarMapaRuta() {
         );
 
     // =========================
+    // DESMARCAR TODO
+    // =========================
+
+    document
+        .getElementById("btnDesmarcar")
+        .addEventListener(
+            "click",
+            () => {
+
+                paquetesValidos.forEach(item => {
+
+                    item.marker.selected = false;
+
+                    item.marker.setIcon(null);
+
+                });
+
+                seleccionados = [];
+
+                actualizarContador();
+
+            }
+        );
+
+    // =========================
     // ASIGNAR
     // =========================
 
@@ -800,25 +796,6 @@ async function iniciarMapaRuta() {
                     repartidor,
                     paquetes: seleccionados
                 });
-
-                // =========================
-                // AJAX BACKEND
-                // =========================
-
-                /*
-                $.post(
-                    "assign_packages.php",
-                    {
-                        repartidor,
-                        paquetes: seleccionados
-                    },
-                    function(response){
-
-                        console.log(response);
-
-                    }
-                );
-                */
 
             }
         );
