@@ -367,6 +367,33 @@ $(document).ready(function () {
             canvas.width,
             canvas.height
         );
+        const imageData = ctx.getImageData(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+);
+
+const data = imageData.data;
+
+// grayscale + contrast
+for(let i = 0; i < data.length; i += 4){
+
+    const avg =
+        (
+            data[i] +
+            data[i + 1] +
+            data[i + 2]
+        ) / 3;
+
+    const contrast = avg > 140 ? 255 : 0;
+
+    data[i]     = contrast;
+    data[i + 1] = contrast;
+    data[i + 2] = contrast;
+}
+
+ctx.putImageData(imageData, 0, 0);
 
         const imageBase64 =
             canvas.toDataURL('image/png');
@@ -440,6 +467,10 @@ $(document).ready(function () {
 
                 $('#ocr-address').html(
                     response.address || '-'
+                );
+
+                 $('#ocr-full-text').html(
+                    response.fullText || '-'
                 );
 
             },
@@ -571,6 +602,7 @@ $(document).ready(function () {
         $('#ocr-phone').html('-');
 
         $('#ocr-address').html('-');
+        $('#ocr-full-text').html('-');
 
         $('#ocr-initial').html('');
         $('#ocr-folio').html('');
@@ -581,18 +613,14 @@ $(document).ready(function () {
         );
 
         if (canvas) {
-
             const ctx = canvas.getContext('2d');
-
             ctx.clearRect(
                 0,
                 0,
                 canvas.width,
                 canvas.height
             );
-
         }
-
     }
 
     // =====================================================
@@ -623,11 +651,11 @@ $('#btn-capture-ocr').prop('disabled', false);
     }
 
 async function saveDataOcr(){
-alert('iniciando guardado');
+
     if(ocrSaved){
     return;
 }
-alert('leyendo datos...');
+
     const qr      = $('#ocr-qr').text().trim();
     const name    = $('#ocr-name').text().trim();
     const phone   = $('#ocr-phone').text().trim();
@@ -654,7 +682,7 @@ alert('leyendo datos...');
         contentType: false,
 
         beforeSend: function(){
-            alert('enviando datos...');
+            
 
             $('#btn-save-ocr').prop('disabled', true);
 
@@ -680,7 +708,7 @@ alert('leyendo datos...');
 
             console.error(xhr);
 
-            alert('Error de conexión');
+            
 
             $('#btn-save-ocr').prop('disabled', false);
 
@@ -697,7 +725,7 @@ alert('leyendo datos...');
     $('#btn-save-ocr')
         .off('click')
         .on('click', function () {
-            alert('clicked save');
+            
             saveDataOcr();
         });
 

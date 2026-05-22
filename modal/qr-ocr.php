@@ -53,11 +53,11 @@ OCR MODAL
     background:#000;
 }
 #ocr-overlay{
-    position:absolute;
-    top:15%;
-    left:10%;
-    width:80%;
-    height:70%;
+    position: absolute;
+    top: 18%;
+    left: 13%;
+    width: 75%;
+    height: 65%;
     border:2px solid #00ff44;
     border-radius:8px;
     box-shadow:0 0 0 9999px rgba(0,0,0,.45);
@@ -290,6 +290,10 @@ OCR MODAL
                         <strong>Dir:</strong>
                         <span id="ocr-address">-</span>
                     </div>
+                    <div class="ocr-info-row">
+                        <strong>Full text:</strong>
+                        <span id="ocr-full-text">-</span>
+                    </div>
 
                 </div>
 
@@ -319,7 +323,6 @@ OCR MODAL
         <button type="button"
                 class="btn btn-warning"
                 id="btn-next-ocr">
-
             <i class="fa fa-arrow-right"></i>
 
         </button>

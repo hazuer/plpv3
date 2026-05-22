@@ -115,60 +115,149 @@ try {
         }
     }
 
-    // =====================================================
-    // EXTRAER DATOS
-    // =====================================================
+    // =====================================
+// LIMPIAR TEXTO OCR
+// =====================================
 
-    $name = '';
-    $phone = '';
-    $address = '';
-    $lines = explode("\n", $fullText);
+$fullText = trim((string)$fullText);
 
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (!$line) {
-            continue;
-        }
-        // =============================================
-        // PHONE
-        // =============================================
-        if (
-            preg_match('/(\+52|52)?[0-9]{10,13}/', $line)
-            && !$phone
-        ) {
-            preg_match('/(\+52|52)?[0-9]{10,13}/', $line, $matches);
-            $phone = $matches[0];
-            $phone = substr(preg_replace('/\D/', '', $phone), -10);
+$lines = preg_split('/\r\n|\r|\n/', $fullText);
 
-        }
-        // =============================================
-        // NAME
-        // =============================================
-        if (
-            preg_match('/^[A-ZÁÉÍÓÚÑ ]{8,}$/u', strtoupper($line))
-            && !$name
-        ) {
-            $name = ucwords(strtolower($line));
-        }
-        // =============================================
-        // ADDRESS
-        // =============================================
+// limpiar líneas vacías
+$lines = array_values(array_filter(array_map(function($line){
 
-        if (
-            (
-                stripos($line, '#') !== false ||
-                stripos($line, 'col') !== false ||
-                stripos($line, 'calle') !== false ||
-                stripos($line, 'av') !== false ||
-                stripos($line, 'avenida') !== false
-            )
-            && !$address
-        ) {
-            $address = $line;
+    return trim($line);
+
+}, $lines)));
+
+$name = '';
+$phone = '';
+$address = '';
+$postalCode = '';
+
+// =====================================
+// NOMBRE
+// =====================================
+
+if(isset($lines[0])){
+
+    $possibleName = trim($lines[0]);
+
+    // palabras inválidas
+    $invalidWords = [
+        'calle',
+        'direccion',
+        'address',
+        'colonia',
+        'cp',
+        'codigo'
+    ];
+
+    $isInvalid = false;
+
+    foreach($invalidWords as $word){
+
+        if(
+            stripos($possibleName, $word) !== false
+        ){
+            $isInvalid = true;
+            break;
         }
+    }
+
+    if(!$isInvalid){
+
+        $name = $possibleName;
 
     }
 
+}
+
+// =====================================
+// TELEFONO
+// =====================================
+
+if(isset($lines[1])){
+
+    // dejar solo números
+    $digits = preg_replace(
+        '/\D/',
+        '',
+        $lines[1]
+    );
+
+    // tomar últimos 10 dígitos
+    $phone = substr($digits, -10);
+
+}
+
+// =====================================
+// DIRECCION
+// =====================================
+
+$addressLines = [];
+
+for($i = 2; $i < count($lines); $i++){
+
+    $line = trim($lines[$i]);
+
+    // buscar CP
+    if(
+        preg_match('/\b(\d{5})\b/', $line, $matches)
+    ){
+        $postalCode = $matches[1];
+    }
+
+    // quitar "To"
+    $line = preg_replace(
+        '/^To\s+/i',
+        '',
+        $line
+    );
+
+    $addressLines[] = $line;
+
+}
+
+// unir dirección
+$address = implode(', ', $addressLines);
+
+// =====================================
+// LIMPIAR DIRECCION
+// =====================================
+
+// eliminar CP duplicado
+if($postalCode){
+
+    $address = preg_replace(
+        '/\b'.$postalCode.'\b/',
+        '',
+        $address
+    );
+
+}
+
+// limpiar comas dobles
+$address = preg_replace(
+    '/\s+,/',
+    ',',
+    $address
+);
+
+$address = preg_replace(
+    '/,+/',
+    ',',
+    $address
+);
+
+$address = trim($address, ', ');
+
+// volver agregar CP al final
+if($postalCode){
+
+    $address .= ', '.$postalCode;
+
+}
     // =====================================================
     // CLOSE CLIENT
     // =====================================================
@@ -177,18 +266,21 @@ try {
     // DELETE TEMP
     // =====================================================
     if (file_exists($imagePath)) {
-        unlink($imagePath);
+        //unlink($imagePath);
     }
     // =====================================================
     // RESPONSE
     // =====================================================
-    echo json_encode([
+    $responseDate= [
         'success' => true,
         'text' => $fullText,
         'name' => $name,
         'phone' => $phone,
         'address' => $address,
-    ]);
+        'fullText' => $fullText,
+    ];
+    echo json_encode($responseDate);
+     writeLog('result: ' . json_encode($responseDate));
 
 } catch (Throwable $e) {
     writeLog('ERROR: ' . $e->getMessage());
