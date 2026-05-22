@@ -386,6 +386,8 @@ async function iniciarMapaRuta() {
             mapTypeControl: true,
             streetViewControl: false,
             fullscreenControl: true,
+            scrollwheel: true,
+gestureHandling: "greedy"
         }
     );
 
@@ -513,9 +515,51 @@ async function iniciarMapaRuta() {
                             cursor:pointer;
                         "
                     >
-                        Seleccionar
+                        <i class="fa fa-check"></i>
                     </button>
 
+
+<button
+    onclick="confirmarDireccion('${pkg.tracking}')"
+    style="
+        background:#17a2b8;
+        color:white;
+        border:none;
+        padding:8px 12px;
+        border-radius:6px;
+        cursor:pointer;
+    "
+>
+    <i class="fa fa-map-marker"></i>
+</button>
+
+<button
+    onclick="mostrarWhats('${pkg.phone}','${pkg.receiver}')"
+    style="
+        background:#25D366;
+        color:white;
+        border:none;
+        padding:8px 12px;
+        border-radius:6px;
+        cursor:pointer;
+    "
+>
+    <i class="fa fa-whatsapp"></i>
+</button>
+
+<button
+    onclick="infoPaquete('${pkg.tracking}')"
+    style="
+        background:#6c757d;
+        color:white;
+        border:none;
+        padding:8px 12px;
+        border-radius:6px;
+        cursor:pointer;
+    "
+>
+    <i class="fa fa-info"></i>
+</button>
                 </div>
             `;
 
@@ -532,6 +576,8 @@ async function iniciarMapaRuta() {
                 toggleSeleccion(
                     pkg.id_package
                 );
+
+
 
             });
 
@@ -621,6 +667,45 @@ async function iniciarMapaRuta() {
 
         actualizarContador();
     };
+
+    // =========================
+// CONFIRMAR DIRECCION
+// =========================
+
+window.confirmarDireccion =
+    function(tracking){
+
+    alert(
+        "Confirmar dirección:\n" + tracking
+    );
+
+};
+
+// =========================
+// MOSTRAR WHATSAPP
+// =========================
+
+window.mostrarWhats =
+    function(phone, receiver){
+
+    alert(
+        "Mostrar WhatsApp:\n" + phone + " - " + receiver
+    );
+
+};
+
+// =========================
+// INFO PAQUETE
+// =========================
+
+window.infoPaquete =
+    function(tracking){
+
+    alert(
+        "Información del paquete:\n" + tracking
+    );
+
+};
 
     // =========================
     // CONTADOR
