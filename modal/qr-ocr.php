@@ -23,7 +23,6 @@ QR MODAL
 <!-- =========================================================
 OCR MODAL
 ========================================================= -->
-
 <style>
 #modal-ocr-camera .modal-dialog{
     max-width:95%;
@@ -172,11 +171,9 @@ OCR MODAL
     padding:0;
 }
 @media(max-width:768px){
-
     .ocr-camera-section{
         height:20vh;
     }
-
     .ocr-data-grid{
         grid-template-columns:1fr 1fr;
     }
@@ -233,9 +230,12 @@ OCR MODAL
                     <span>&times;</span>
                 </button>
             </div>
+
+            <!-- Modal body -->
             <div class="modal-body">
+                <!-- Ocr layout -->
                 <div class="ocr-layout">
-                    <!-- CAMERA -->
+                    <!-- Camera -->
                     <div class="ocr-camera-section">
                         <div id="video-container-ocr-camera">
                             <video id="video-ocr-camera" autoplay playsinline></video>
@@ -246,91 +246,58 @@ OCR MODAL
                         </div>
                     </div>
 
-                    <!-- PREVIEW -->
+                    <!-- Preview -->
                     <div class="ocr-preview-section">
                         <div class="ocr-preview-container">
                             <canvas id="canvas-ocr-camera"></canvas>
                         </div>
                     </div>
 
-                                    <!-- RESULTADO -->
-                <div class="ocr-show-result"
-                     id="ocr-show-result">
-
-                    <span class="badge badge-success"
-                          id="ocr-initial">
-                        A
-                    </span>
-
-                    <span class="badge badge-primary"
-                          id="ocr-folio">
-                        127
-                    </span>
-
-                </div>
-                                   <!-- QR -->
-                <div class="ocr-info">
-
-                    <div class="ocr-info-row">
-                        <strong>QR:</strong>
-                        <span id="ocr-qr">-</span>
+                    <!-- Result -->
+                    <div class="ocr-show-result" id="ocr-show-result"> 
+                        <span class="badge badge-success" id="ocr-initial">A</span>
+                        <span class="badge badge-primary" id="ocr-folio">127</span>
                     </div>
 
-                    <div class="ocr-info-row">
-                        <strong>Nombre:</strong>
-                        <span id="ocr-name">-</span>
+                    <!-- QR -->
+                    <div class="ocr-info">
+                        <div class="ocr-info-row">
+                            <strong>QR:</strong><span id="ocr-qr">-</span>
+                        </div>
+                        <div class="ocr-info-row">
+                            <strong>Nombre:</strong><span id="ocr-name">-</span>
+                        </div>
+                        <div class="ocr-info-row">
+                            <strong>Tel:</strong><span id="ocr-phone">-</span>
+                        </div>
+                        <div class="ocr-info-row">
+                            <strong>Dir:</strong><span id="ocr-address">-</span>
+                        </div>
+                        <div class="ocr-info-row">
+                            <strong>Full text:</strong><span id="ocr-full-text">-</span>
+                        </div>
                     </div>
 
-                    <div class="ocr-info-row">
-                        <strong>Tel:</strong>
-                        <span id="ocr-phone">-</span>
-                    </div>
-
-                    <div class="ocr-info-row">
-                        <strong>Dir:</strong>
-                        <span id="ocr-address">-</span>
-                    </div>
-                    <div class="ocr-info-row">
-                        <strong>Full text:</strong>
-                        <span id="ocr-full-text">-</span>
-                    </div>
-
-                </div>
-
+                    <!-- Actions -->
                     <div class="ocr-actions">
-
-    <div class="ocr-action-left">
-        <button type="button"
-                class="btn btn-primary"
-                id="btn-save-ocr">
-
-            <i class="fa fa-save"></i>
-
-        </button>
-    </div>
-
-    <div class="ocr-action-center">
-        <button type="button"
-                class="btn-center btn-success"
-                id="btn-capture-ocr">
-
-            <i class="fa fa-camera"></i>
-
-        </button>
-    </div>
-
-    <div class="ocr-action-right">
-        <button type="button"
-                class="btn btn-warning"
-                id="btn-next-ocr">
-            <i class="fa fa-arrow-right"></i>
-
-        </button>
-    </div>
-
-</div>
-                </div>
-            </div>
-        </div>
+                        <div class="ocr-action-left">
+                            <button type="button"class="btn btn-primary"id="btn-save-ocr">
+                                <i class="fa fa-save"></i>
+                            </button>
+                        </div>
+                        <div class="ocr-action-center">
+                            <button type="button" class="btn-center btn-success" id="btn-capture-ocr">
+                                <i class="fa fa-camera"></i>
+                            </button>
+                        </div>
+                        <div class="ocr-action-right">
+                            <button type="button" class="btn btn-warning" id="btn-next-ocr">
+                                <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div><!--Actions end-->
+                </div><!-- Ocr layout end-->
+            </div><!-- Ocr body end -->
+        </div> <!-- modal-content end -->
     </div>
 </div>

@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
+require_once('../includes/functions.php');
 
 use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
 use Google\Cloud\Vision\V1\AnnotateImageRequest;
@@ -18,289 +19,192 @@ switch ($_POST['action']) {
         break;
 }
 
-// =====================================================
-// LOG
-// =====================================================
-
-function writeLog($message) {
-    $logFile = __DIR__ . '/ocr.log';
-
-    file_put_contents(
-        $logFile,
-        '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL,
-        FILE_APPEND
-    );
-}
-
 function processImage(){
-// =========================================
-// CREDENCIALES
-// =========================================
-putenv('GOOGLE_APPLICATION_CREDENTIALS=' . __DIR__ . '/../plp-vision-032a0b5d2d49.json');
+    putenv('GOOGLE_APPLICATION_CREDENTIALS=' . __DIR__ . '/../plp-vision-032a0b5d2d49.json');
+    try {
+        if (!isset($_POST['image'])) {
+            throw new Exception('Imagen no recibida');
+        }
+        $imageBase64 = $_POST['image'];
+        $extension = 'jpg';
+        if (strpos($imageBase64, 'image/png') !== false) {
+            $extension = 'png';
 
-try {
+        }
+        // Clean BASE64
+        $imageBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $imageBase64);
+        $imageBase64 = str_replace(' ', '+', $imageBase64);
+        // Decode
+        $imageContent = base64_decode($imageBase64);
+        if (!$imageContent) {
+            throw new Exception('Base64 inválido');
+        }
+        // save temp image
+        $imagePath = __DIR__ . '/temp_ocr.' . $extension;
+        file_put_contents($imagePath, $imageContent);
 
-    // =====================================================
-    // VALIDAR IMAGEN
-    // =====================================================
-    if (!isset($_POST['image'])) {
-        throw new Exception('Imagen no recibida');
-    }
-    $imageBase64 = $_POST['image'];
-    // =====================================================
-    // DETECTAR EXTENSION
-    // =====================================================
-    $extension = 'jpg';
-    if (strpos($imageBase64, 'image/png') !== false) {
-        $extension = 'png';
+        if (!file_exists($imagePath)) {
+            throw new Exception(
+                'No se pudo guardar imagen'
+            );
+        }
 
-    }
-    // =====================================================
-    // LIMPIAR BASE64
-    // =====================================================
-    $imageBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $imageBase64);
-    $imageBase64 = str_replace(' ', '+', $imageBase64);
+        // Google Vision API
+        $imageAnnotator = new ImageAnnotatorClient();
+        // Image
+        $image = new Image();
+        $image->setContent($imageContent);
+        // Feature
+        $feature = new Feature();
+        $feature->setType(Type::DOCUMENT_TEXT_DETECTION);
+        // Request
+        $annotateRequest = new AnnotateImageRequest();
+        $annotateRequest->setImage($image);
+        $annotateRequest->setFeatures([$feature]);
+        // Batch Request
+        $batchRequest = new BatchAnnotateImagesRequest();
+        $batchRequest->setRequests([$annotateRequest]);
+        $response  = $imageAnnotator->batchAnnotateImages($batchRequest);
+        $responses = $response->getResponses();
+        $fullText  = '';
 
-    // =====================================================
-    // DECODIFICAR
-    // =====================================================
-    $imageContent = base64_decode($imageBase64);
-    if (!$imageContent) {
-        throw new Exception('Base64 inválido');
-    }
+        if (count($responses) > 0) {
+            $annotation = $responses[0]->getFullTextAnnotation();
+            if ($annotation) {
+                $fullText = $annotation->getText();
+            }
+        }
 
-    // =====================================================
-    // GUARDAR TEMPORAL
-    // =====================================================
-    $imagePath = __DIR__ . '/temp_ocr.' . $extension;
-    file_put_contents($imagePath, $imageContent);
+        // Clean Ocr Text
+        $fullText = trim((string)$fullText);
+        $lines    = preg_split('/\r\n|\r|\n/', $fullText);
+        // Clean empty lines and trim
+        $lines    = array_values(array_filter(array_map(function($line){
+            return trim($line);
+        }, $lines)));
 
-    if (!file_exists($imagePath)) {
-        throw new Exception(
-            'No se pudo guardar imagen'
+        $name       = '';
+        $phone      = '';
+        $address    = '';
+        $postalCode = '';
+
+        // Name
+        if(isset($lines[0])){
+            $possibleName = trim($lines[0]);
+            // inavlaid words
+            $invalidWords = [
+                'calle',
+                'direccion',
+                'address',
+                'colonia',
+                'cp',
+                'codigo',
+            ];
+
+            $isInvalid = false;
+            foreach($invalidWords as $word){
+                if(stripos($possibleName, $word) !== false){
+                    $isInvalid = true;
+                    break;
+                }
+            }
+            if(!$isInvalid){
+                $name = $possibleName;
+            }
+        }
+
+        // Phone
+        if(isset($lines[1])){
+            // only numbers
+            $digits = preg_replace(
+                '/\D/',
+                '',
+                $lines[1]
+            );
+            // take last 10 digits
+            $phone = substr($digits, -10);
+        }
+
+        // Address
+        $addressLines = [];
+        for($i = 2; $i < count($lines); $i++){
+            $line = trim($lines[$i]);
+            // buscar CP
+            if(preg_match('/\b(\d{5})\b/', $line, $matches)){
+                $postalCode = $matches[1];
+            }
+            // quitar "To"
+            $line = preg_replace(
+                '/^To\s+/i',
+                '',
+                $line
+            );
+            $addressLines[] = $line;
+        }
+
+        // unir dirección
+        $address = implode(', ', $addressLines);
+        // Clean address
+        if($postalCode){
+            $address = preg_replace(
+                '/\b'.$postalCode.'\b/',
+                '',
+                $address
+            );
+        }
+        // limpiar comas dobles
+        $address = preg_replace(
+            '/\s+,/',
+            ',',
+            $address
         );
-    }
+        $address = preg_replace(
+            '/,+/',
+            ',',
+            $address
+        );
+        $address = trim($address, ', ');
 
-    // =====================================================
-    // GOOGLE CLOUD VISION
-    // =====================================================
-    $imageAnnotator = new ImageAnnotatorClient();
-    // IMAGE
-    $image = new Image();
-    $image->setContent($imageContent);
-    // FEATURE
-    $feature = new Feature();
-    $feature->setType(
-        Type::DOCUMENT_TEXT_DETECTION
-    );
-    // REQUEST
-    $annotateRequest = new AnnotateImageRequest();
-    $annotateRequest->setImage($image);
-    $annotateRequest->setFeatures([
-        $feature
-    ]);
-
-    // BATCH
-    $batchRequest = new BatchAnnotateImagesRequest();
-    $batchRequest->setRequests([$annotateRequest]);
-
-    $response = $imageAnnotator->batchAnnotateImages($batchRequest);
-    $responses = $response->getResponses();
-    $fullText = '';
-
-    if (count($responses) > 0) {
-        $annotation = $responses[0]->getFullTextAnnotation();
-        if ($annotation) {
-            $fullText = $annotation->getText();
+        // volver agregar CP al final
+        if($postalCode){
+            $address .= ', '.$postalCode;
         }
-    }
-
-    // =====================================
-// LIMPIAR TEXTO OCR
-// =====================================
-
-$fullText = trim((string)$fullText);
-
-$lines = preg_split('/\r\n|\r|\n/', $fullText);
-
-// limpiar líneas vacías
-$lines = array_values(array_filter(array_map(function($line){
-
-    return trim($line);
-
-}, $lines)));
-
-$name = '';
-$phone = '';
-$address = '';
-$postalCode = '';
-
-// =====================================
-// NOMBRE
-// =====================================
-
-if(isset($lines[0])){
-
-    $possibleName = trim($lines[0]);
-
-    // palabras inválidas
-    $invalidWords = [
-        'calle',
-        'direccion',
-        'address',
-        'colonia',
-        'cp',
-        'codigo'
-    ];
-
-    $isInvalid = false;
-
-    foreach($invalidWords as $word){
-
-        if(
-            stripos($possibleName, $word) !== false
-        ){
-            $isInvalid = true;
-            break;
+        // close client
+        $imageAnnotator->close();
+        // Delete temp image
+        if (file_exists($imagePath)) {
+            //unlink($imagePath);
         }
+
+        $responseData= [
+            'success'  => true,
+            'text'     => $fullText,
+            'name'     => $name,
+            'phone'    => $phone,
+            'address'  => $address,
+            'fullText' => $fullText,
+        ];
+        writeLog('result: ' . json_encode($responseData));
+        jsonResponse($responseData);
+
+    } catch (Throwable $e) {
+        writeLog('ERROR: ' . $e->getMessage());
+        writeLog('LINE: ' . $e->getLine());
+        writeLog('FILE: ' . $e->getFile());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile()
+        ]);
     }
-
-    if(!$isInvalid){
-
-        $name = $possibleName;
-
-    }
-
 }
-
-// =====================================
-// TELEFONO
-// =====================================
-
-if(isset($lines[1])){
-
-    // dejar solo números
-    $digits = preg_replace(
-        '/\D/',
-        '',
-        $lines[1]
-    );
-
-    // tomar últimos 10 dígitos
-    $phone = substr($digits, -10);
-
-}
-
-// =====================================
-// DIRECCION
-// =====================================
-
-$addressLines = [];
-
-for($i = 2; $i < count($lines); $i++){
-
-    $line = trim($lines[$i]);
-
-    // buscar CP
-    if(
-        preg_match('/\b(\d{5})\b/', $line, $matches)
-    ){
-        $postalCode = $matches[1];
-    }
-
-    // quitar "To"
-    $line = preg_replace(
-        '/^To\s+/i',
-        '',
-        $line
-    );
-
-    $addressLines[] = $line;
-
-}
-
-// unir dirección
-$address = implode(', ', $addressLines);
-
-// =====================================
-// LIMPIAR DIRECCION
-// =====================================
-
-// eliminar CP duplicado
-if($postalCode){
-
-    $address = preg_replace(
-        '/\b'.$postalCode.'\b/',
-        '',
-        $address
-    );
-
-}
-
-// limpiar comas dobles
-$address = preg_replace(
-    '/\s+,/',
-    ',',
-    $address
-);
-
-$address = preg_replace(
-    '/,+/',
-    ',',
-    $address
-);
-
-$address = trim($address, ', ');
-
-// volver agregar CP al final
-if($postalCode){
-
-    $address .= ', '.$postalCode;
-
-}
-    // =====================================================
-    // CLOSE CLIENT
-    // =====================================================
-    $imageAnnotator->close();
-    // =====================================================
-    // DELETE TEMP
-    // =====================================================
-    if (file_exists($imagePath)) {
-        //unlink($imagePath);
-    }
-    // =====================================================
-    // RESPONSE
-    // =====================================================
-    $responseDate= [
-        'success' => true,
-        'text' => $fullText,
-        'name' => $name,
-        'phone' => $phone,
-        'address' => $address,
-        'fullText' => $fullText,
-    ];
-    echo json_encode($responseDate);
-     writeLog('result: ' . json_encode($responseDate));
-
-} catch (Throwable $e) {
-    writeLog('ERROR: ' . $e->getMessage());
-    writeLog('LINE: ' . $e->getLine());
-    writeLog('FILE: ' . $e->getFile());
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage(),
-        'line' => $e->getLine(),
-        'file' => $e->getFile()
-    ]);
-}
-}
-
 
 function saveDataOcr(){
 
-    $qr = $_POST['qr'] ?? '';
-    $name = $_POST['name'] ?? '';
-    $phone = $_POST['phone'] ?? '';
+    $qr      = $_POST['qr'] ?? '';
+    $name    = $_POST['name'] ?? '';
+    $phone   = $_POST['phone'] ?? '';
     $address = $_POST['address'] ?? '';
 
     // =========================================
@@ -308,20 +212,18 @@ function saveDataOcr(){
     // =========================================
 
     // ejemplo temporal
-    $initial = 'A';
+    $initial = !empty($name) ? mb_strtoupper(mb_substr(trim($name), 0, 1)) : '-';
     $folio = rand(100,999);
 
-    echo json_encode([
+    $responseData = [
         'success' => true,
         'message' => 'Datos guardados correctamente',
-
         'initial' => $initial,
-        'folio' => $folio,
-
-        'qr' => $qr,
-        'name' => $name,
-        'phone' => $phone,
+        'folio'   => $folio,
+        'qr'      => $qr,
+        'name'    => $name,
+        'phone'   => $phone,
         'address' => $address
-    ]);
-
+    ];
+    jsonResponse($responseData);
 }
