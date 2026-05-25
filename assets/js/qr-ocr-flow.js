@@ -180,12 +180,22 @@ $(document).ready(function () {
         const cropHeight = overlayRect.height * scaleY;
         // CANVAS
         // mejorar resolución OCR
-        canvas.width = cropWidth * 1.5;
-        canvas.height = cropHeight * 1.5;
+        canvas.width = cropWidth * 2;
+        canvas.height = cropHeight * 2;
         ctx.clearRect( 0, 0, canvas.width, canvas.height);
 
-        // FILTROS OCR
-        ctx.filter = 'contrast(115%) brightness(103%)';
+        // mejor calidad escalado
+        ctx.imageSmoothingEnabled = true;
+
+        ctx.imageSmoothingQuality = 'high';
+
+        // filtros OCR
+        ctx.filter = `
+            grayscale(100%)
+            contrast(185%)
+            brightness(128%)
+            saturate(0%)
+            `.replace(/\s+/g, ' ');
 
         // dibujar imagen
         ctx.drawImage(
@@ -199,6 +209,15 @@ $(document).ready(function () {
             canvas.width,
             canvas.height
         );
+        ctx.globalCompositeOperation ='screen';
+        ctx.fillStyle ='rgba(255,255,255,0.14)';
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+        ctx.globalCompositeOperation ='source-over';
 
         // reset filtros
         ctx.filter = 'none';
@@ -241,6 +260,7 @@ $(document).ready(function () {
                 $('#ocr-name').html(response.name || '-');
                 $('#ocr-phone').html(response.phone || '-');
                 $('#ocr-address').html(response.address || '-');
+                $('#ocr-postal-code').html(response.postalCode || '-');
                 $('#ocr-full-text').html(
                     `
                     <div style="
@@ -323,6 +343,7 @@ $(document).ready(function () {
         $('#ocr-name').html('-');
         $('#ocr-phone').html('-');
         $('#ocr-address').html('-');
+        $('#ocr-postal-code').html('-');
         $('#ocr-full-text').html('-');
         $('#ocr-initial').html('');
         $('#ocr-folio').html('');
@@ -367,12 +388,14 @@ $(document).ready(function () {
         const name    = $('#ocr-name').text().trim();
         const phone   = $('#ocr-phone').text().trim();
         const address = $('#ocr-address').text().trim();
+        const postalCode = $('#ocr-postal-code').text().trim();
 
         let formData = new FormData();
         formData.append('qr', qr);
         formData.append('name', name);
         formData.append('phone', phone);
         formData.append('address', address);
+        formData.append('postalCode', postalCode);
         formData.append('action', 'saveDataOcr');
 
         $.ajax({

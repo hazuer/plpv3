@@ -274,6 +274,9 @@ OCR MODAL
                             <strong>Dir:</strong><span id="ocr-address">-</span>
                         </div>
                         <div class="ocr-info-row">
+                            <strong>CP:</strong><span id="ocr-postal-code">-</span>
+                        </div>
+                        <div class="ocr-info-row">
                             <strong>Full text:</strong><span id="ocr-full-text">-</span>
                         </div>
                     </div>

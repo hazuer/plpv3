@@ -74,101 +74,35 @@ function processImage(){
                 $fullText = $annotation->getText();
             }
         }
-
-        // Clean Ocr Text
+        // full text cleanup
         $fullText = trim((string)$fullText);
-        $lines    = preg_split('/\r\n|\r|\n/', $fullText);
-        // Clean empty lines and trim
-        $lines    = array_values(array_filter(array_map(function($line){
-            return trim($line);
-        }, $lines)));
-
-        $name       = '';
-        $phone      = '';
-        $address    = '';
-        $postalCode = '';
-
-        // Name
-        if(isset($lines[0])){
-            $possibleName = trim($lines[0]);
-            // inavlaid words
-            $invalidWords = [
-                'calle',
-                'direccion',
-                'address',
-                'colonia',
-                'cp',
-                'codigo',
-            ];
-
-            $isInvalid = false;
-            foreach($invalidWords as $word){
-                if(stripos($possibleName, $word) !== false){
-                    $isInvalid = true;
-                    break;
-                }
-            }
-            if(!$isInvalid){
-                $name = $possibleName;
-            }
-        }
-
-        // Phone
-        if(isset($lines[1])){
-            // only numbers
-            $digits = preg_replace(
-                '/\D/',
-                '',
-                $lines[1]
-            );
-            // take last 10 digits
-            $phone = substr($digits, -10);
-        }
-
-        // Address
-        $addressLines = [];
-        for($i = 2; $i < count($lines); $i++){
-            $line = trim($lines[$i]);
-            // buscar CP
-            if(preg_match('/\b(\d{5})\b/', $line, $matches)){
-                $postalCode = $matches[1];
-            }
-            // quitar "To"
-            $line = preg_replace(
-                '/^To\s+/i',
-                '',
-                $line
-            );
-            $addressLines[] = $line;
-        }
-
-        // unir dirección
-        $address = implode(', ', $addressLines);
-        // Clean address
-        if($postalCode){
-            $address = preg_replace(
-                '/\b'.$postalCode.'\b/',
-                '',
-                $address
-            );
-        }
-        // limpiar comas dobles
-        $address = preg_replace(
-            '/\s+,/',
-            ',',
-            $address
+        // dividir líneas
+        $lines = preg_split(
+            '/\r\n|\r|\n/',
+            $fullText
         );
-        $address = preg_replace(
-            '/,+/',
-            ',',
-            $address
-        );
-        $address = trim($address, ', ');
+        // limpiar líneas
+        $lines = array_values(
+            array_filter(
+                array_map(
+                    function($line){
 
-        // volver agregar CP al final
-        if($postalCode){
-            $address .= ', '.$postalCode;
-        }
+                        return trim($line);
+
+                    },
+                    $lines
+                )
+            )
+        );
+
+        $invalidLinesByName    = ['TO','Q','KO','CVJS','CVL','MLX','MEX','MEY','Radi','it','JIU','FMD','000','0001','Zac','Zacatepec','tlaquiltenango'];
+        $invalidLinesByAddress = ['TO','Q','KO','CVJS','CVL','MLX','MEX','MEY','Radi','it','JIU','FMD','000','0001'];
+       
+        $name       = getName($lines, $invalidLinesByName);
+        $phone      = getPhone($fullText);
+        $postalCode = getPostalCode($fullText);
+        $address    = getAddress($lines, $name, $phone, $postalCode, $invalidLinesByAddress);
+
         // close client
         $imageAnnotator->close();
         // Delete temp image
@@ -183,6 +117,7 @@ function processImage(){
             'phone'    => $phone,
             'address'  => $address,
             'fullText' => $fullText,
+            'postalCode' => $postalCode
         ];
         writeLog('result: ' . json_encode($responseData));
         jsonResponse($responseData);
@@ -200,12 +135,149 @@ function processImage(){
     }
 }
 
+function getName($lines, $invalidLines){
+
+    $name = '';
+    foreach($lines as $line){
+        $candidate = trim($line);
+        // quitar Nombre:
+        $candidate = preg_replace('/^Nombre\s*:\s*/iu','',$candidate);
+        // quitar TO
+        $candidate = preg_replace('/^TO\s+/iu','',$candidate);
+        // excluir basura
+        if(in_array(mb_strtoupper($candidate),array_map('mb_strtoupper', $invalidLines))){
+            continue;
+        }
+
+        // excluir líneas muy cortas
+        if(mb_strlen($candidate) < 4){
+            continue;
+        }
+
+        // excluir si contiene calle
+        if(preg_match('/calle|direccion|address/iu',$candidate)){
+            continue;
+        }
+
+        // excluir si tiene demasiados números
+        if(preg_match_all('/\d/', $candidate) > 3){
+            continue;
+        }
+
+        // debe tener letras
+        if(!preg_match('/[a-záéíóúñ]/iu', $candidate)){
+            continue;
+        }
+        $name = $candidate;
+        break;
+    }
+    return $name;
+}
+
+function getPhone($fullText){
+    $phone = '';
+    // dividir líneas
+    $lines = preg_split('/\r\n|\r|\n/',$fullText);
+
+    foreach($lines as $line){
+        if(preg_match('/tel|telefono|\+52|\d{10}/iu',$line)){
+
+            // extraer solo números
+            preg_match_all('/\d/',$line,$matches);
+
+            $digits = implode('',$matches[0]);
+
+            // tomar últimos 10
+            if(strlen($digits) >= 10){
+                $phone = substr($digits,-10);
+                return $phone;
+            }
+        }
+    }
+
+    preg_match_all('/\d/',$fullText,$matches);
+    $digits = implode('',$matches[0]);
+    if(strlen($digits) >= 10){
+        $phone = substr($digits,-10);
+    }
+
+    return $phone;
+}
+
+function getAddress($lines, $name, $phone, $postalCode, $invalidLines){
+    $address = '';
+    $addressLines = [];
+    foreach($lines as $line){
+        $candidate = trim($line);
+
+        // excluir nombre
+        if( stripos($candidate, $name) !== false){
+            continue;
+        }
+
+        // excluir teléfono
+        if(strpos($candidate, $phone) !== false){
+            continue;
+        }
+
+        // excluir CP
+        if(strpos($candidate, $postalCode) !== false){
+            $candidate = preg_replace(
+                '/\b'.$postalCode.'\b/',
+                '',
+                $candidate
+            );
+        }
+
+        // excluir basura OCR
+        if(in_array(strtoupper($candidate),$invalidLines)){
+            continue;
+        }
+
+        // excluir líneas muy cortas
+        if(mb_strlen($candidate) < 4){
+            continue;
+        }
+        // excluir Nombre:
+        if(preg_match('/^Nombre\s*:/iu',$candidate)){
+            continue;
+        }
+        // excluir líneas TEL
+        if(preg_match('/tel|cp:/iu',$candidate)){
+            continue;
+        }
+        // quitar TO
+        $candidate = preg_replace('/^TO\s+/iu','',$candidate);
+        $addressLines[] = $candidate;
+    }
+
+    // unir dirección
+    $address = implode(', ',$addressLines);
+
+    // limpiar múltiples espacios
+    $address = preg_replace('/\s+/',' ',$address);
+
+    // limpiar comas dobles
+    $address = preg_replace('/,+/',',', $address);
+
+    return $address;
+}
+
+function getPostalCode($fullText){
+    $postalCode = '';
+    if(preg_match('/\b(\d{5})\b/',$fullText,$cpMatch)){
+        $postalCode = $cpMatch[1];
+    }
+    return $postalCode;
+}
+
 function saveDataOcr(){
 
     $qr      = $_POST['qr'] ?? '';
     $name    = $_POST['name'] ?? '';
     $phone   = $_POST['phone'] ?? '';
     $address = $_POST['address'] ?? '';
+    $postalCode = $_POST['postalCode'] ?? '';
 
     // =========================================
     // GUARDAR EN BD
@@ -223,7 +295,8 @@ function saveDataOcr(){
         'qr'      => $qr,
         'name'    => $name,
         'phone'   => $phone,
-        'address' => $address
+        'address' => $address,
+        'postalCode' => $postalCode
     ];
     jsonResponse($responseData);
 }
