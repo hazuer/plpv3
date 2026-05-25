@@ -264,11 +264,11 @@ OCR MODAL
                         <div class="ocr-info-row">
                             <strong>QR:</strong><span id="ocr-qr">-</span>
                         </div>
-                        <div class="ocr-info-row">
-                            <strong>Nombre:</strong><span id="ocr-name">-</span>
+                         <div class="ocr-info-row">
+                            <strong>Tel:</strong><span id="ocr-phone">-</span>
                         </div>
                         <div class="ocr-info-row">
-                            <strong>Tel:</strong><span id="ocr-phone">-</span>
+                            <strong>Nombre:</strong><span id="ocr-name">-</span>
                         </div>
                         <div class="ocr-info-row">
                             <strong>Dir:</strong><span id="ocr-address">-</span>

@@ -180,8 +180,8 @@ $(document).ready(function () {
         const cropHeight = overlayRect.height * scaleY;
         // CANVAS
         // mejorar resolución OCR
-        canvas.width = cropWidth * 2;
-        canvas.height = cropHeight * 2;
+        canvas.width = cropWidth * 2.5;
+        canvas.height = cropHeight * 2.5;
         ctx.clearRect( 0, 0, canvas.width, canvas.height);
 
         // mejor calidad escalado
@@ -221,6 +221,27 @@ $(document).ready(function () {
 
         // reset filtros
         ctx.filter = 'none';
+/*
+        // new code
+        const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const data = imageData.data;
+        // grayscale + contrast
+        for(let i = 0; i < data.length; i += 4){
+            const avg =
+                (
+                    data[i] +
+                    data[i + 1] +
+                    data[i + 2]
+                ) / 3;
+            const contrast = avg > 130 ? 255 : 0; //130?255
+            data[i]     = contrast;
+            data[i + 1] = contrast;
+            data[i + 2] = contrast;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        // end new code
+        */
+
         // BASE64
         const imageBase64 = canvas.toDataURL('image/png');
         // INICIAR CRONOMETRO OCR
@@ -229,9 +250,19 @@ $(document).ready(function () {
     }
 
     function sendImageToOcr(imageBase64) {
+        const idLocation = $('#option-location').val();
+        // prefijo ubicación
+        const locationPrefix = $('#option-location option:selected').text().trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
+        // random corto
+        const random = Math.random().toString(36).substring(2,10);
+        // nombre final
+        const imageName = `${locationPrefix}_${random}.png`;
+
         let formData = new FormData();
         formData.append('image', imageBase64);
         formData.append('qr', qrDetected);
+        formData.append('idLocation', idLocation);
+        formData.append('imageName', imageName);
         formData.append('action', 'processImage');
         $.ajax({
             url: `${base_url}/controllers/ocrRecipient.php`,
@@ -389,6 +420,7 @@ $(document).ready(function () {
         const phone   = $('#ocr-phone').text().trim();
         const address = $('#ocr-address').text().trim();
         const postalCode = $('#ocr-postal-code').text().trim();
+        const idLocation = $('#option-location').val();
 
         let formData = new FormData();
         formData.append('qr', qr);
@@ -396,6 +428,7 @@ $(document).ready(function () {
         formData.append('phone', phone);
         formData.append('address', address);
         formData.append('postalCode', postalCode);
+        formData.append('idLocation', idLocation);
         formData.append('action', 'saveDataOcr');
 
         $.ajax({
