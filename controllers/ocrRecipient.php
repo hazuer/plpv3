@@ -137,7 +137,18 @@ function processImage(){
         }
         $ocrName    = getName($lines, $invalidLinesByName);
         //validar que el nombre del ocr coincida con alguno desde bd
-        $name       = resolveRecipientName($phone, $ocrName, $fullText);
+        $ocrDb       = resolveRecipientName($phone, $ocrName, $fullText);
+        $name = $ocrDb['name'];
+            /*$ocrDb = [
+        'name'           => $ocrName,
+        'phoneExists'    => false,
+        'isNewPhone'     => true,
+        'exactMatch'     => false,
+        'similarMatch'   => false,
+        'bestSimilarity' => 0,
+        'status'         => 'new_phone'
+    ];*/
+    writeLog('OCR DB: ' . json_encode($ocrDb));
         $postalCode = getPostalCode($fullText);
         $address    = getAddress($lines, $name, $phone, $postalCode, $invalidLinesByAddress);
 
@@ -150,11 +161,12 @@ function processImage(){
 
         $responseData= [
             'success'  => true,
-            'fullText'     => $fullText,
+            'fullText' => $fullText.'<br>'.json_encode($ocrDb),
             'phone'    => $phone,
             'name'     => $name,
             'address'  => $address,
-            'postalCode' => $postalCode
+            'postalCode' => $postalCode,
+            'ocrDb'    => $ocrDb
         ];
         writeLog('result: ' . json_encode($responseData));
         jsonResponse($responseData);
@@ -182,8 +194,23 @@ function processImage(){
 }
 
 
-function resolveRecipientName($phone,$ocrName,$fullText){
+function resolveRecipientName($phone, $ocrName, $fullText){
+
     global $db;
+
+    // =========================================
+    // RESPUESTA BASE
+    // =========================================
+    $response = [
+        'name'           => $ocrName,
+        'phoneExists'    => false,
+        'isNewPhone'     => true,
+        'exactMatch'     => false,
+        'similarMatch'   => false,
+        'bestSimilarity' => 0,
+        'status'         => 'new_phone',
+        'allowAutoRegister' => false
+    ];
 
     // =========================================
     // LIMPIAR TELEFONO
@@ -191,32 +218,42 @@ function resolveRecipientName($phone,$ocrName,$fullText){
     $phone = preg_replace('/\D/', '', $phone);
 
     if(strlen($phone) != 10){
-        return $ocrName;
+        return $response;
     }
 
     // =========================================
     // BUSCAR CONTACTOS
     // =========================================
-    $sql = "SELECT 
-        id_contact,
-        contact_name 
-        FROM cat_contact 
+    $sql = "
+        SELECT id_contact, contact_name
+        FROM cat_contact
         WHERE phone = '".$phone."'
     ";
-    writeLog('SQL: ' . $sql);
+
+    writeLog('SQL: '.$sql);
+
     $rows = $db->select($sql);
 
-    // sin registros
+    // =========================================
+    // TELEFONO NUEVO
+    // =========================================
     if(empty($rows)){
-        return $ocrName;
+        return $response;
     }
+
+    // =========================================
+    // TELEFONO EXISTE
+    // =========================================
+    $response['phoneExists'] = true;
+    $response['isNewPhone']  = false;
+    $response['status']      = 'phone_exists';
 
     // =========================================
     // DIVIDIR OCR EN LINEAS
     // =========================================
-    $lines = preg_split('/\r\n|\r|\n/',$fullText);
+    $lines = preg_split('/\r\n|\r|\n/', $fullText);
 
-    // agregar ocrName también
+    // agregar OCR name
     $lines[] = $ocrName;
 
     $bestMatch      = '';
@@ -225,7 +262,9 @@ function resolveRecipientName($phone,$ocrName,$fullText){
     // =========================================
     // RECORRER CONTACTOS
     // =========================================
+    writeLog('CONTACTOS ENCONTRADOS: '.json_encode($rows));
     foreach($rows as $row){
+
         $dbName = trim($row['contact_name']);
         $dbNameClean = normalizeText($dbName);
 
@@ -245,36 +284,62 @@ function resolveRecipientName($phone,$ocrName,$fullText){
             // MATCH EXACTO
             // =================================
             if($lineClean == $dbNameClean){
-                return $dbName;
+
+                $response['name']           = $dbName;
+                $response['exactMatch']     = true;
+                $response['similarMatch']   = true;
+                $response['bestSimilarity'] = 100;
+                $response['status']         = 'exact_match';
+                $response['allowAutoRegister'] = true;
+                return $response;
+            }
+
+            if(
+                strpos($dbNameClean, $lineClean) !== false
+                ||
+                strpos($lineClean, $dbNameClean) !== false
+            ){
+
+                $response['name']           = $dbName;
+                $response['exactMatch']     = false;
+                $response['similarMatch']   = true;
+                $response['bestSimilarity'] = 95;
+                $response['status']         = 'partial_match';
+                $response['allowAutoRegister'] = true;
+
+                return $response;
             }
 
             // =================================
             // SIMILITUD
             // =================================
-            similar_text($lineClean,$dbNameClean,$percent);
+            similar_text($lineClean, $dbNameClean, $percent);
 
             // =================================
-            // BONUS POR CONTENER PALABRAS
+            // BONUS POR PALABRAS
             // =================================
-            $dbWords = explode(' ',$dbNameClean);
+            $dbWords = explode(' ', $dbNameClean);
 
             $matches = 0;
 
             foreach($dbWords as $word){
-                if(
-                    strlen($word) >= 4
-                    &&
-                    strpos($lineClean,$word) !== false
-                ){
+
+                if(strlen($word) >= 4 && strpos($lineClean, $word) !== false){
                     $matches++;
                 }
             }
 
-            // bonus
+            // bonus similitud
             $percent += ($matches * 10);
+            if($percent > 100){
+                $percent = 100;
+            }
 
-            // guardar mejor match
+            // =================================
+            // GUARDAR MEJOR MATCH
+            // =================================
             if($percent > $bestSimilarity){
+
                 $bestSimilarity = $percent;
                 $bestMatch      = $dbName;
             }
@@ -282,24 +347,38 @@ function resolveRecipientName($phone,$ocrName,$fullText){
     }
 
     // =========================================
-    // MATCH ACEPTABLE
+    // MATCH SIMILAR
     // =========================================
     if($bestSimilarity >= 55){
-        return $bestMatch;
+
+        $response['name']           = $bestMatch;
+        $response['similarMatch']   = true;
+        $response['bestSimilarity'] = $bestSimilarity;
+        $response['status']         = 'similar_match';
+
+        if($bestSimilarity >= 95){
+            $response['allowAutoRegister'] = true;
+        }
+
+        return $response;
     }
 
     // =========================================
-    // FALLBACK OCR
+    // TELEFONO EXISTE
+    // PERO NOMBRE NO COINCIDE
     // =========================================
-    return $ocrName;
+    $response['bestSimilarity'] = $bestSimilarity;
+    $response['status']         = 'phone_exists_name_no_match';
+
+    return $response;
 }
+
 
 function normalizeText($text){
     // convertir a minúsculas
     $text = mb_strtolower(trim($text),'UTF-8');
     // quitar acentos
-    $text = iconv('UTF-8','ASCII//TRANSLIT',$text
-    );
+    $text = iconv('UTF-8','ASCII//TRANSLIT',$text);
     // quitar caracteres especiales
     $text = preg_replace('/[^a-z0-9\s]/',' ',$text);
     // quitar espacios múltiples
@@ -513,6 +592,15 @@ function saveDataOcr(){
     $address = $_POST['address'] ?? '';
     $postalCode = $_POST['postalCode'] ?? '';
     $idLocation = $_POST['idLocation'] ?? '';
+
+    writeLog('Guardando datos OCR: '.json_encode([
+        'qr' => $qr,
+        'name' => $name,
+        'phone' => $phone,
+        'address' => $address,
+        'postalCode' => $postalCode,
+        'idLocation' => $idLocation
+    ]));
 
     // =========================================
     // GUARDAR EN BD

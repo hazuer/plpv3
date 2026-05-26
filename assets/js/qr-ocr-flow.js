@@ -304,6 +304,34 @@ $(document).ready(function () {
                     ${response.fullText || '-'}
                     `
                 );
+
+                // =========================================
+                // AUTO REGISTRO
+                // =========================================
+                if(response.ocrDb.allowAutoRegister){
+
+                    swal({
+                        title: 'Registro automático',
+                        text: `Coincidencia ${response.ocrDb.bestSimilarity}%`,
+                        icon: 'success',
+                        timer: 1000,
+                        buttons: false
+                    });
+
+                    setTimeout(function(){
+
+                        $('#btn-save-ocr').trigger('click');
+
+                    }, 1200);
+                }else{
+                    swal({
+                        title: 'Validacion Manual Requerida',
+                        text: `Coincidencia ${response.ocrDb.bestSimilarity}%. No se permite registro automático.`,
+                        icon: 'warning',
+                        timer: 1500,
+                        buttons: false
+                    });
+                }
             },error: function (xhr) {
                 swal.close();
                 console.error(xhr.responseText);
