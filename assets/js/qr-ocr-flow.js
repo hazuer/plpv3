@@ -96,6 +96,7 @@ $(document).ready(function () {
         video.style.width     = '100%';
         video.style.height    = '100%';
         video.style.objectFit = 'cover';
+        $('#btn-save-ocr').hide();
 
         try {
             currentStream =
@@ -273,6 +274,8 @@ $(document).ready(function () {
             processData: false,
             dataType: 'json',
             beforeSend: function () {
+                $('#btn-save-ocr').hide();
+                $('#btn-capture-ocr').hide();
                 swal({ title: 'Procesando OCR', text: 'Espere por favor', buttons: false });
             },
             success: function (response) {
@@ -285,6 +288,8 @@ $(document).ready(function () {
 
                 if (!response.success) {
                     swal("Error",response.message,"error");
+                    $('#btn-save-ocr').hide();
+                    $('#btn-capture-ocr').show();
                     return;
                 }
 
@@ -323,10 +328,14 @@ $(document).ready(function () {
                         $('#btn-save-ocr').trigger('click');
 
                     }, 1200);
+                    $('#btn-save-ocr').hide();
+                    $('#btn-capture-ocr').hide();
                 }else{
+                    $('#btn-save-ocr').hide();
+                    $('#btn-capture-ocr').show();
                     swal({
-                        title: 'Validacion Manual Requerida',
-                        text: `Coincidencia ${response.ocrDb.bestSimilarity}%. No se permite registro automático.`,
+                        title: 'No fue posible el registro automático',
+                        text: `no se detectton coincidencias suficientes para auto registrar`,
                         icon: 'warning',
                         timer: 1500,
                         buttons: false
@@ -335,6 +344,8 @@ $(document).ready(function () {
             },error: function (xhr) {
                 swal.close();
                 console.error(xhr.responseText);
+                $('#btn-save-ocr').hide();
+                $('#btn-capture-ocr').show();
                 swal("Error","Error al procesar OCR","error");
             }
         });
@@ -425,6 +436,8 @@ $(document).ready(function () {
         ocrSaved = false;
         $('#btn-save-ocr').prop('disabled', false);
         $('#btn-capture-ocr').prop('disabled', false);
+        $('#btn-save-ocr').show();
+        $('#btn-capture-ocr').show();
         resetLabels();
         stopCamera();
         $('#btn-save-ocr').prop('disabled', false);

@@ -610,6 +610,8 @@ function saveDataOcr(){
     $initial = !empty($name) ? mb_strtoupper(mb_substr(trim($name), 0, 1)) : '-';
     $folio = rand(100,999);
 
+    #Todo validar si ya existe el QR, si el teléfono ya tiene un destinatario, etc.
+
     $responseData = [
         'success' => true,
         'message' => 'Datos guardados correctamente',
