@@ -25,9 +25,172 @@ $(document).ready(function () {
         resetQrOcrFlow();
     });
 
+    let selectedColor = '';
+    let selectedCourierType = '';
+
+    $btnTest.off('click').on('click', async function (e) {
+        e.preventDefault();
+        // si falta alguno mostrar modal único
+        if (!selectedColor || !selectedCourierType) {
+            const config = await selectPackageConfig();
+            if (!config) {
+                return;
+            }
+            selectedColor = config.color;
+            selectedCourierType = config.courierType;
+        }
+        resetLabels();
+        openQrModal();
+    });
+
+    function selectPackageConfig() {
+        return new Promise((resolve) => {
+            swal({
+                title: 'Configuración del paquete',
+                content: {
+                    element: "div",
+                    attributes: {
+                        innerHTML: `
+                            <div style="text-align:left">
+                                <label>
+                                    Color
+                                </label>
+                                <select id="sw_marker_color"
+                                        class="form-control"
+                                        style="margin-bottom:15px;">
+                                    <option value="">
+                                        Seleccione color
+                                    </option>
+                                    <option value="1">🔴 Rojo</option>
+                                    <option value="2">🔵 Azul</option>
+                                    <option value="3">🟢 Verde</option>
+                                    <option value="4">⚫ Negro</option>
+                                </select>
+                                <label>
+                                    Tipo paquetería
+                                </label>
+                                <select id="sw_id_cat_parcel" class="form-control">
+                                    <option value="">Seleccione tipo</option>
+                                    <option value="1">J&T</option>
+                                    <option value="2">IMILE</option>
+                                    <option value="3">CNMEX</option>
+                                    <option value="99">Otro</option>
+                                </select>
+                            </div>
+                        `
+                    }
+                },
+
+                buttons: {
+                    cancel: true,
+                    confirm: {text: 'Continuar',closeModal: false}
+                }
+
+            }).then(() => {
+                const color =
+                $('#sw_marker_color').val();
+                const courierType =
+                $('#sw_id_cat_parcel').val();
+
+                if (!color || !courierType) {
+                    swal('Error','Debe seleccionar color y tipo','error');
+                    resolve(null);
+                    return;
+                }
+                swal.close();
+                resolve({color,courierType});
+            });
+        });
+    }
+
+    function validateTrackingByParcel(tracking) {
+    tracking = tracking.trim();
+    const parcelType = parseInt(selectedCourierType);
+
+    // =========================================
+    // J&T
+    // =========================================
+    if (parcelType === 1) {
+        let regex = /^JMX\d{12}$/i;
+        if ( tracking.length !== 15 || !regex.test(tracking)) {
+            return {
+                success: false,
+                message: 'Guía J&T inválida. Debe tener formato JMX + 12 dígitos'
+            };
+        }
+        tracking = tracking.substring(0, 3).toUpperCase() + tracking.substring(3);
+        return {
+            success: true,
+            tracking
+        };
+    }
+
+    // =========================================
+    // IMILE
+    // =========================================
+    if (parcelType === 2) {
+        if (/^im\d{14}$/i.test(tracking)) {
+            tracking = tracking.toUpperCase();
+        }
+        const regexNumerico = /^\d{13,14}$/;
+        const regexIm       = /^IM\d{14}$/;
+        if ( !regexNumerico.test(tracking) && !regexIm.test(tracking) ) {
+            return {
+                success: false,
+                message: 'Guía IMILE inválida'
+            };
+        }
+        return {
+            success: true,
+            tracking
+        };
+    }
+
+    // =========================================
+    // CNMEX
+    // =========================================
+    if (parcelType === 3) {
+        let regex = /^CNMEX\d{10}$/i;
+        if ( tracking.length !== 15 || !regex.test(tracking)) {
+            return {
+                success: 
+                false,message: 'Guía CNMEX inválida'
+            };
+        }
+        tracking = tracking.substring(0, 5).toUpperCase() + tracking.substring(5);
+        return {
+            success: 
+            true,tracking
+        };
+    }
+
+    // =========================================
+    // OTRO
+    // =========================================
+    return {success: true,tracking};
+}
+
     async function openQrModal() {
         await stopQrScanner();
         $('#qr-reader-ocr').html('');
+        let qrLabel = 'Escanea guía';
+        if (selectedCourierType == 1) {
+            qrLabel = 'Escanea guía J&T';
+        }
+        else if (selectedCourierType == 2) {
+            qrLabel = 'Escanea guía IMILE';
+        }
+        else if (selectedCourierType == 3) {
+            qrLabel = 'Escanea guía CNMEX';
+        }
+        else if (selectedCourierType == 99) {
+            qrLabel = 'Escanea cualquier guía';
+        }
+
+        $('.modal-title').html(`
+            <i class="fa fa-qrcode"></i>
+            ${qrLabel}
+        `);
         $('#modal-scan-qr-ocr').modal({backdrop: 'static',keyboard: false});
         html5QrCode = new Html5Qrcode("qr-reader-ocr");
         try {
@@ -51,8 +214,18 @@ $(document).ready(function () {
         if (qrDetected !== '') {
             return;
         }
-        qrDetected = decodedText;
-        $('#ocr-qr').html(decodedText);
+        // =========================================
+        // VALIDAR GUIA
+        // =========================================
+        const validation = validateTrackingByParcel(decodedText);
+
+        if (!validation.success) {
+            swal('Atención',validation.message,'error');
+            return;
+        }
+
+        qrDetected = validation.tracking;
+        $('#ocr-qr').html(qrDetected);
         await stopQrScanner();
         $('#modal-scan-qr-ocr').one(
             'hidden.bs.modal',
@@ -470,6 +643,8 @@ $(document).ready(function () {
         formData.append('address', address);
         formData.append('postalCode', postalCode);
         formData.append('idLocation', idLocation);
+        formData.append('packageColor', selectedColor);
+        formData.append('courierType', selectedCourierType);
         formData.append('action', 'saveDataOcr');
 
         $.ajax({
