@@ -53,25 +53,25 @@ OCR MODAL
 }
 #ocr-overlay{
     position: absolute;
-    top: 18%;
-    left: 13%;
-    width: 75%;
-    height: 65%;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 75%;
     border:2px solid #00ff44;
     border-radius:8px;
     box-shadow:0 0 0 9999px rgba(0,0,0,.45);
 }
-#ocr-overlay-label{
+/*#ocr-overlay-label{
     position:absolute;
     top:3%;
     left:23%;
     color:#00ff44;
     /*background:rgba(0,0,0,.6);*/
-    padding:4px 8px;
+    /*padding:4px 8px;
     border-radius:5px;
     font-size:13px;
     font-weight:bold;
-}
+}*/
 .ocr-preview-section{
     padding:10px;
     background:#f5f5f5;
@@ -205,7 +205,7 @@ OCR MODAL
     color:#111;
 }
 .ocr-show-result .badge{
-    font-size:15px;
+    font-size:20px;
     padding:10px 18px;
     /*margin:3px;
     border-radius:8px;*/
@@ -240,9 +240,9 @@ OCR MODAL
                         <div id="video-container-ocr-camera">
                             <video id="video-ocr-camera" autoplay playsinline></video>
                             <div id="ocr-overlay"></div>
-                            <div id="ocr-overlay-label">
+                            <!--<div id="ocr-overlay-label">
                                 Coloque destinatario aquí
-                            </div>
+                            </div>-->
                         </div>
                     </div>
 
@@ -262,7 +262,7 @@ OCR MODAL
                     <!-- QR -->
                     <div class="ocr-info">
                         <div class="ocr-info-row">
-                            <strong>QR:</strong><span id="ocr-qr">-</span>
+                            <strong>Guía:</strong><span id="ocr-qr">-</span>
                         </div>
                          <div class="ocr-info-row">
                             <strong>Tel:</strong><span id="ocr-phone">-</span>

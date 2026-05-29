@@ -52,6 +52,17 @@ $(document).ready(function () {
                     attributes: {
                         innerHTML: `
                             <div style="text-align:left">
+                            <label>
+                                    Tipo paquetería
+                                </label>
+                                <select id="sw_id_cat_parcel" class="form-control">
+                                    <option value="">Seleccione tipo</option>
+                                    <option value="1">J&T</option>
+                                    <option value="2">IMILE</option>
+                                    <option value="3">CNMEX</option>
+                                    <option value="99">Otro</option>
+                                </select>
+                                <br>
                                 <label>
                                     Color
                                 </label>
@@ -61,20 +72,10 @@ $(document).ready(function () {
                                     <option value="">
                                         Seleccione color
                                     </option>
-                                    <option value="1">🔴 Rojo</option>
-                                    <option value="2">🔵 Azul</option>
-                                    <option value="3">🟢 Verde</option>
-                                    <option value="4">⚫ Negro</option>
-                                </select>
-                                <label>
-                                    Tipo paquetería
-                                </label>
-                                <select id="sw_id_cat_parcel" class="form-control">
-                                    <option value="">Seleccione tipo</option>
-                                    <option value="1">J&T</option>
-                                    <option value="2">IMILE</option>
-                                    <option value="3">CNMEX</option>
-                                    <option value="99">Otro</option>
+                                    <option value="red">🔴 Rojo</option>
+                                    <option value="blue">🔵 Azul</option>
+                                    <option value="green">🟢 Verde</option>
+                                    <option value="black">⚫ Negro</option>
                                 </select>
                             </div>
                         `
@@ -488,19 +489,19 @@ $(document).ready(function () {
                 // =========================================
                 if(response.ocrDb.allowAutoRegister){
 
-                    swal({
+                    /*swal({
                         title: 'Registro automático',
                         text: `Coincidencia ${response.ocrDb.bestSimilarity}%`,
                         icon: 'success',
                         timer: 1000,
                         buttons: false
-                    });
+                    });*/
 
                     setTimeout(function(){
 
                         $('#btn-save-ocr').trigger('click');
 
-                    }, 1200);
+                    }, 400);
                     $('#btn-save-ocr').hide();
                     $('#btn-capture-ocr').hide();
                 }else{
@@ -508,7 +509,7 @@ $(document).ready(function () {
                     $('#btn-capture-ocr').show();
                     swal({
                         title: 'No fue posible el registro automático',
-                        text: `no se detectton coincidencias suficientes para auto registrar`,
+                        text: `No se detectton coincidencias suficientes para auto registrar`,
                         icon: 'warning',
                         timer: 1500,
                         buttons: false
@@ -531,6 +532,9 @@ $(document).ready(function () {
             document.activeElement.blur();
             stopCamera();
             $('#modal-ocr-camera').modal('hide');
+            setTimeout(function(){
+                location.reload();
+            }, 300);
         });
 
     // CLOSE QR
@@ -540,6 +544,9 @@ $(document).ready(function () {
             document.activeElement.blur();
             await stopQrScanner();
             $('#modal-scan-qr-ocr').modal('hide');
+            setTimeout(function(){
+                location.reload();
+            }, 300);
         });
 
     // STOP CAMERA
@@ -647,6 +654,7 @@ $(document).ready(function () {
         formData.append('courierType', selectedCourierType);
         formData.append('action', 'saveDataOcr');
 
+        //alert('Guardando datos OCR, por favor espere...');
         $.ajax({
             url: `${base_url}/controllers/ocrRecipient.php`,
             type: 'POST',
@@ -655,16 +663,44 @@ $(document).ready(function () {
             processData: false,
             contentType: false,
             beforeSend: function(){
+                /*swal({
+                    title: 'Guardando datos',
+                    text: 'Espere por favor',incon: 'info',buttons: false
+                });*/
                 $('#btn-save-ocr').prop('disabled', true);
             },
             success:function(response){
-                if(response.success){
-                    $('#ocr-initial').text(response.initial);
-                    $('#ocr-folio').text(response.folio);
-                    $('#ocr-save-result').show();
-                    $('#btn-capture-ocr').prop('disabled', true);
+            if(response.success){
+                $('#ocr-initial').text(response.initial);
+                $('#ocr-folio').text(response.folio);
+                $('#ocr-save-result').show();
+                $('#btn-capture-ocr').prop(
+                    'disabled',
+                    true
+                );
+
+                // =====================================
+                // YA EXISTE
+                // =====================================
+                if(response.alreadyExists){
+                    swal({
+                        title: 'Guía Registrada',
+                        text: '  ',//response.message,
+                        icon: 'success',
+                        timer: 1500,
+                        buttons: false
+                    });
+                }else{
+                    swal({
+                        title: '',
+                        text: response.message,
+                        icon: 'success',
+                        timer: 500,
+                        buttons: false
+                    });
                 }
-            },
+            }
+        },
             error: function(xhr){
                 console.error(xhr);
                 $('#btn-save-ocr').prop('disabled', false);

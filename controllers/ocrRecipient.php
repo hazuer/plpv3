@@ -300,14 +300,16 @@ function resolveRecipientName($phone, $ocrName, $fullText){
                 strpos($lineClean, $dbNameClean) !== false
             ){
 
-                $response['name']           = $dbName;
-                $response['exactMatch']     = false;
-                $response['similarMatch']   = true;
-                $response['bestSimilarity'] = 95;
-                $response['status']         = 'partial_match';
-                $response['allowAutoRegister'] = true;
+                $percent = 95;
 
-                return $response;
+                // priorizar nombres más largos
+                $percent += strlen($dbNameClean) * 0.1;
+
+                if($percent > $bestSimilarity){
+
+                    $bestSimilarity = $percent;
+                    $bestMatch      = $dbName;
+                }
             }
 
             // =================================
@@ -330,7 +332,7 @@ function resolveRecipientName($phone, $ocrName, $fullText){
             }
 
             // bonus similitud
-            $percent += ($matches * 10);
+            $percent += ($matches * 20);
             if($percent > 100){
                 $percent = 100;
             }
@@ -586,42 +588,213 @@ function getPostalCode($fullText){
 
 function saveDataOcr(){
 
-    $qr      = $_POST['qr'] ?? '';
-    $name    = $_POST['name'] ?? '';
-    $phone   = $_POST['phone'] ?? '';
-    $address = $_POST['address'] ?? '';
-    $postalCode = $_POST['postalCode'] ?? '';
-    $idLocation = $_POST['idLocation'] ?? '';
+    global $db;
 
-    writeLog('Guardando datos OCR: '.json_encode([
-        'qr' => $qr,
-        'name' => $name,
-        'phone' => $phone,
-        'address' => $address,
-        'postalCode' => $postalCode,
-        'idLocation' => $idLocation
-    ]));
+    $idLocation    = $_POST['idLocation'] ?? '';
+    $phone         = trim($_POST['phone'] ?? '');
+    $tracking      = trim($_POST['qr'] ?? '');
+    $name          = trim($_POST['name'] ?? '');
+    $address       = trim($_POST['address'] ?? '');
+    $postalCode    = trim($_POST['postalCode'] ?? '');
+    $marker        = $_POST['packageColor'] ?? '';
+    $id_cat_parcel = $_POST['courierType'] ?? '';
+    $id_user       = $_SESSION["uId"];
 
-    // =========================================
-    // GUARDAR EN BD
-    // =========================================
+    try{
 
-    // ejemplo temporal
-    $initial = !empty($name) ? mb_strtoupper(mb_substr(trim($name), 0, 1)) : '-';
-    $folio = rand(100,999);
+        // =====================================
+        // VALIDAR TRACKING DUPLICADO
+        // =====================================
 
-    #Todo validar si ya existe el QR, si el teléfono ya tiene un destinatario, etc.
+        $sqlCheck = "SELECT COUNT(tracking) total 
+            FROM package 
+            WHERE tracking IN ('".$tracking."')
+        ";
+        $rstCheck = $db->select($sqlCheck);
+        $total = $rstCheck[0]['total'];
 
-    $responseData = [
-        'success' => true,
-        'message' => 'Datos guardados correctamente',
-        'initial' => $initial,
-        'folio'   => $folio,
-        'qr'      => $qr,
-        'name'    => $name,
-        'phone'   => $phone,
-        'address' => $address,
-        'postalCode' => $postalCode
-    ];
-    jsonResponse($responseData);
+        if($total > 0 ){
+            $sqlPackage = "SELECT folio 
+                FROM package 
+                WHERE tracking = '".$tracking."' 
+                LIMIT 1
+            ";
+
+            $rstPackage = $db->select($sqlPackage);
+            writeLog('SQL: '.$sqlPackage);
+            WriteLog('data: '.$rstPackage);
+            $folioExistente =
+            $rstPackage[0]['folio'] ?? '-';
+
+            $initial =
+                !empty($name)
+                ? mb_strtoupper(
+                    mb_substr(trim($name),0,1)
+                )
+                : '-';
+
+            jsonResponse([
+                'success'       => true,
+                'alreadyExists' => true,
+                'message'       => 'La guía ya existe',
+                'initial'       => $initial,
+                'folio'         => $folioExistente,
+                'tracking'      => $tracking
+            ]);
+        }
+
+        // =====================================
+        // VALIDAR CONTACTO
+        // =====================================
+
+        $sqlCheck = "SELECT id_contact
+            FROM cat_contact 
+            WHERE 
+                phone IN ('".$phone."') 
+                AND contact_name IN('".$name."') 
+                AND id_location IN(".$idLocation.") 
+                AND id_contact_status = 1
+        ";
+
+        $existing = $db->select($sqlCheck);
+
+        if(empty($existing)){
+
+            $sqlCheckTypeContact = " SELECT COUNT(id_contact_type) AS total 
+                FROM cat_contact 
+                WHERE 
+                    phone = '".$phone."' 
+                    AND id_contact_status = 1 
+                    AND id_contact_type IN(2)
+            ";
+
+            $rstCheck = $db->select($sqlCheckTypeContact);
+
+            $totalContact = $rstCheck[0]['total'];
+
+            $id_contact_type =
+                ($totalContact >= 1)
+                ? 2
+                : 1;
+
+            $contact = [
+                'id_location'       => $idLocation,
+                'phone'             => $phone,
+                'contact_name'      => $name,
+                'id_contact_type'   => $id_contact_type,
+                'id_contact_status' => 1,
+                'id_contact'        => null,
+                'id_type_mode'      => 3 //OCR
+            ];
+
+            $id_contact =
+                $db->insert(
+                    'cat_contact',
+                    $contact
+                );
+
+        }else{
+
+            $id_contact =
+                $existing[0]['id_contact'];
+        }
+
+        // =====================================
+        // VALIDAR CONTACTO
+        // =====================================
+
+        if(
+            empty($id_contact)
+            ||
+            $id_contact == 0
+        ){
+
+            jsonResponse([
+                'success' => false,
+                'message' => 'No se pudo registrar contacto'
+            ]);
+        }
+
+        // =====================================
+        // GENERAR FOLIO
+        // =====================================
+
+        $db->sqlPure("UPDATE folio
+            SET folio = LAST_INSERT_ID(
+                CASE
+                    WHEN folio >= 999 THEN 1
+                    ELSE folio + 1
+                END
+            )
+            WHERE id_location = ".(int)$idLocation."
+        ");
+
+        $records = $db->select("SELECT LAST_INSERT_ID() AS nuevo_folio");
+
+        $folio = $records[0]['nuevo_folio'];
+
+        // =====================================
+        // INSERT PACKAGE
+        // =====================================
+
+        $fecha_actual = date("Y-m-d H:i:s");
+
+        $data = [
+            'id_package'     => null,
+            'id_location'    => $idLocation,
+            'id_contact'     => $id_contact,
+            'id_status'      => 1,
+            'note'           => '',
+            'folio'          => $folio,
+            'c_date'         => $fecha_actual,
+            'c_user_id'      => $id_user,
+            'tracking'       => $tracking,
+            'id_cat_parcel'  => $id_cat_parcel,
+            'id_type_mode'   => 3, //OCR
+            'marker'         => $marker,
+            'address'        => $address
+        ];
+
+        $new_id_package =
+            $db->insert(
+                'package',
+                $data
+            );
+
+        // =====================================
+        // RESPONSE
+        // =====================================
+
+        $initial =
+            !empty($name)
+            ? mb_strtoupper(
+                mb_substr(
+                    trim($name),
+                    0,
+                    1
+                )
+            )
+            : '-';
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Registrado correctamente',
+            'initial' => $initial,
+            'folio'   => $folio,
+            'tracking'=> $tracking,
+            'id_package' => $new_id_package
+        ]);
+
+    }catch(Exception $e){
+
+        writeLog(
+            'ERROR saveDataOcr: '
+            .$e->getMessage()
+        );
+
+        jsonResponse([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
 }
