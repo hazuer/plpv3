@@ -4,14 +4,15 @@ $(document).ready(function () {
     let qrDetected    = '';
     let currentStream = null;
     let ocrStartTime  = 0;
+    let evidencePath = '';
 
     const $btnTest = $('#btn-test');
 
-    $btnTest.off('click').on('click', function (e) {
+    /*$btnTest.off('click').on('click', function (e) {
         e.preventDefault();
         resetLabels();
         openQrModal();
-    });
+    });*/
 
     $('#btn-save-ocr')
     .off('click')
@@ -38,9 +39,15 @@ $(document).ready(function () {
             }
             selectedColor = config.color;
             selectedCourierType = config.courierType;
+
+            applyPackageColor();
         }
         resetLabels();
-        openQrModal();
+        if (selectedCourierType == 1) {
+            openOcrCamera();
+        } else {
+            openQrModal();
+        }
     });
 
     function selectPackageConfig() {
@@ -450,7 +457,10 @@ $(document).ready(function () {
             beforeSend: function () {
                 $('#btn-save-ocr').hide();
                 $('#btn-capture-ocr').hide();
-                swal({ title: 'Procesando OCR', text: 'Espere por favor', buttons: false });
+                $('#btn-use-suggested-name').hide();
+                //swal({ title: 'Procesando OCR', text: 'Espere por favor', buttons: false });
+                loading();
+                $('.swal-button-container').hide();
             },
             success: function (response) {
                 swal.close();
@@ -466,13 +476,15 @@ $(document).ready(function () {
                     $('#btn-capture-ocr').show();
                     return;
                 }
-
+                $('#ocr-qr').html(response.tracking || '-');
                 $('#ocr-name').html(response.name || '-');
                 $('#ocr-phone').html(response.phone || '-');
                 $('#ocr-address').html(response.address || '-');
                 $('#ocr-postal-code').html(response.postalCode || '-');
+                evidencePath = response.evidencePath || '';
                 $('#ocr-full-text').html(
                     `
+                    ${response.fullText || '-'}
                     <div style="
                         color: green;
                         font-weight: bold;
@@ -480,27 +492,23 @@ $(document).ready(function () {
                     ">
                         OCR: ${totalTime}s
                     </div>
-                    ${response.fullText || '-'}
                     `
+                );
+                renderValidationStatus(
+                    response.ocrDb
                 );
 
                 // =========================================
                 // AUTO REGISTRO
                 // =========================================
-                if(response.ocrDb.allowAutoRegister){
-
-                    /*swal({
-                        title: 'Registro automático',
-                        text: `Coincidencia ${response.ocrDb.bestSimilarity}%`,
-                        icon: 'success',
-                        timer: 1000,
-                        buttons: false
-                    });*/
+                const validation = response.ocrDb;
+                if(
+                    response.ocrDb &&
+                    response.ocrDb.status === 'auto_register'
+                ){
 
                     setTimeout(function(){
-
-                        $('#btn-save-ocr').trigger('click');
-
+                        $('#btn-save-ocr').trigger('click'); //#########TRIGER AUTO SAVE#########
                     }, 400);
                     $('#btn-save-ocr').hide();
                     $('#btn-capture-ocr').hide();
@@ -523,6 +531,60 @@ $(document).ready(function () {
                 swal("Error","Error al procesar OCR","error");
             }
         });
+    }
+
+    $('#btn-use-suggested-name')
+    .off('click')
+    .on('click', function(){
+
+        const suggested = $(this).data('name');
+
+        $('#ocr-name').text(suggested);
+
+        $(this).hide();
+    });$('#btn-use-suggested-name')
+    .off('click')
+    .on('click', function(){
+
+        const suggested = $(this).data('name');
+
+        $('#ocr-name').text(suggested);
+
+        $(this).hide();
+    });
+
+    function renderValidationStatus(validation){
+        let phoneIcon = '🔴';
+        let nameIcon  = '🔴';
+
+        // TELEFONO
+        if(validation.phoneStatus === 'found'){
+            phoneIcon = '🟢';
+        }
+
+        // NOMBRE
+        switch(validation.nameStatus){
+            case 'exact':
+                nameIcon = '🟢';
+                break;
+
+            case 'similar':
+                nameIcon = '🟡';
+                $('#btn-use-suggested-name')
+                    .data('name',validation.suggestedName).show();
+                break;
+
+            case 'variant':
+                nameIcon = '🟠';
+                break;
+
+            default:
+                nameIcon = '🔴';
+                break;
+        }
+
+        $('#lbl-phone').html(`${phoneIcon} Teléfono:`);
+        $('#lbl-name').html(`${nameIcon} Nombre:`);
     }
 
     // CLOSE OCR
@@ -597,6 +659,8 @@ $(document).ready(function () {
         $('#ocr-full-text').html('-');
         $('#ocr-initial').html('');
         $('#ocr-folio').html('');
+        $('#ocr-validation-status').html('');
+        $('#btn-use-suggested-name').hide();
         $('#ocr-save-result').hide();
         const canvas = document.getElementById('canvas-ocr-camera');
 
@@ -627,7 +691,11 @@ $(document).ready(function () {
         $('#modal-scan-qr-ocr').modal('hide');
         $('#ocr-save-result').hide();
         setTimeout(function () {
-            openQrModal();
+            if (selectedCourierType == 1) {
+                openOcrCamera();
+            } else {
+                openQrModal();
+            }
         }, 500);
     }
 
@@ -652,9 +720,9 @@ $(document).ready(function () {
         formData.append('idLocation', idLocation);
         formData.append('packageColor', selectedColor);
         formData.append('courierType', selectedCourierType);
+        formData.append('evidencePath',evidencePath);
         formData.append('action', 'saveDataOcr');
 
-        //alert('Guardando datos OCR, por favor espere...');
         $.ajax({
             url: `${base_url}/controllers/ocrRecipient.php`,
             type: 'POST',
@@ -674,10 +742,8 @@ $(document).ready(function () {
                 $('#ocr-initial').text(response.initial);
                 $('#ocr-folio').text(response.folio);
                 $('#ocr-save-result').show();
-                $('#btn-capture-ocr').prop(
-                    'disabled',
-                    true
-                );
+                speakPackageData(response);
+                $('#btn-capture-ocr').prop('disabled',true);
 
                 // =====================================
                 // YA EXISTE
@@ -692,13 +758,17 @@ $(document).ready(function () {
                     });
                 }else{
                     swal({
-                        title: '',
-                        text: response.message,
+                        title: 'Registrado',
+                        text: '  ',//response.message,
                         icon: 'success',
-                        timer: 500,
+                        timer: 1500,
                         buttons: false
                     });
                 }
+
+                setTimeout(function () {
+                    $('#btn-next-ocr').trigger('click'); //#########TRIGER AUTO NEXT#########
+                }, 4000);
             }
         },
             error: function(xhr){
@@ -708,4 +778,45 @@ $(document).ready(function () {
         });
     }
 
+    function applyPackageColor(){
+        const color = selectedColor;
+        $('#ocr-initial').removeClass().addClass('badge');
+        $('#ocr-folio').removeClass().addClass('badge');
+
+        switch(color){
+
+            case 'red':
+                $('#ocr-initial').css({background:'#dc3545',color:'#fff'});
+                $('#ocr-folio').css({background:'#dc3545',color:'#fff'});
+                break;
+
+            case 'blue':
+                $('#ocr-initial').css({background:'#007bff',color:'#fff'});
+                $('#ocr-folio').css({background:'#007bff',color:'#fff'});
+                break;
+
+            case 'green':
+                $('#ocr-initial').css({background:'#28a745',color:'#fff'});
+                $('#ocr-folio').css({background:'#28a745',color:'#fff'});
+                break;
+
+            case 'black':
+                $('#ocr-initial').css({background:'#212529',color:'#fff'});
+                $('#ocr-folio').css({background:'#212529',color:'#fff'});
+                break;
+        }
+    }
+
+    function speakPackageData(response){
+        window.speechSynthesis.cancel();
+        speakText(`Folio ${response.folio}`);
+
+        setTimeout(function(){
+            speakText(`Letra ${response.initial}`);
+        }, 600);
+
+        setTimeout(function(){
+            speakText(response.contact_name);
+        }, 600);
+    }
 });

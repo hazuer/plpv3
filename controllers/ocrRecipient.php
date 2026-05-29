@@ -12,6 +12,7 @@ define( '_VALID_MOS', 1 );
 require_once('../includes/configuration.php');
 require_once('../includes/DB.php');
 require_once('../includes/functions.php');
+require_once('ocrJt.php');
 $db = new DB(HOST,USERNAME,PASSWD,DBNAME,PORT,SOCKET);
 
 header('Content-Type: application/json');
@@ -32,11 +33,6 @@ function processImage(){
             throw new Exception('Imagen no recibida');
         }
         $imageBase64 = $_POST['image'];
-        /*$extension = 'jpg';
-        if (strpos($imageBase64, 'image/png') !== false) {
-            $extension = 'png';
-
-        }*/
         // Clean BASE64
         $imageBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $imageBase64);
         $imageBase64 = str_replace(' ', '+', $imageBase64);
@@ -105,68 +101,45 @@ function processImage(){
         }
         // full text cleanup
         $fullText = trim((string)$fullText);
-        // dividir líneas
-        $lines = preg_split(
-            '/\r\n|\r|\n/',
-            $fullText
-        );
-        // limpiar líneas
-        $lines = array_values(
-            array_filter(
-                array_map(
-                    function($line){
-
-                        return trim($line);
-
-                    },
-                    $lines
-                )
-            )
-        );
-
-        $invalidLinesByName    = ['TO','Q','KO','CVJS','CVL','MLX','MEX','MEY','Radi','it','JIU','FMD','000','0001','Zac','Zacatepec','tlaquiltenango'];
-        $invalidLinesByAddress = ['TO','Q','KO','CVJS','CVL','MLX','MEX','MEY','Radi','it','JIU','NCB','FMD','000','0001'];
-       
-        $phone      = getPhone($fullText);
-        if(empty($phone)){
+    
+        $ocrJt      = new OcrJt();
+        $trackingJT = $ocrJt->getTrackingJt($fullText);
+        if(empty($trackingJT)){
+            writeLog('No se pudo extraer tracking JT del OCR');
+            jsonResponse([
+                'success' => false,
+                'message' => 'No se pudo extraer tracking JT del OCR',
+            ]);
+        }
+        $phoneJt = $ocrJt->getPhoneJt($fullText);
+        if(empty($phoneJt)){
             writeLog('No se pudo extraer teléfono del OCR');
             jsonResponse([
             'success' => false,
             'message' => 'No se pudo extraer teléfono del OCR',
             ]);
         }
-        $ocrName    = getName($lines, $invalidLinesByName);
-        //validar que el nombre del ocr coincida con alguno desde bd
-        $ocrDb       = resolveRecipientName($phone, $ocrName, $fullText);
-        $name = $ocrDb['name'];
-            /*$ocrDb = [
-        'name'           => $ocrName,
-        'phoneExists'    => false,
-        'isNewPhone'     => true,
-        'exactMatch'     => false,
-        'similarMatch'   => false,
-        'bestSimilarity' => 0,
-        'status'         => 'new_phone'
-    ];*/
-    writeLog('OCR DB: ' . json_encode($ocrDb));
-        $postalCode = getPostalCode($fullText);
-        $address    = getAddress($lines, $name, $phone, $postalCode, $invalidLinesByAddress);
+        $nameJt = $ocrJt->getNameJt($fullText);
+
+        $contactValidation = $ocrJt->validateRecipientJt($phoneJt,$nameJt);
+        writeLog('OCR DB: ' . json_encode($contactValidation));
+
+        $postalCode = $ocrJt->getPostalCodeJt($fullText);
+        $address    = $ocrJt->getAddressJt($fullText);
 
         // close client
         $imageAnnotator->close();
-        // Delete temp image
-        if (file_exists($filePath)) {
-            unlink($filePath);
-        }
 
-        $responseData= [
-            'success'  => true,
-            'fullText' => $fullText.'<br>'.json_encode($ocrDb),
-            'phone'    => $phone,
-            'name'     => $name,
+        $responseData = [
+            'success'  => true, //TODO
+            'tracking' => $trackingJT,
+            'phone'    => $phoneJt,
+            'name'     => $nameJt,
             'address'  => $address,
             'postalCode' => $postalCode,
-            'ocrDb'    => $ocrDb
+            //'fullText' => json_encode($contactValidation),
+            'ocrDb'    => $contactValidation,
+            'evidencePath'=> $filePath
         ];
         writeLog('result: ' . json_encode($responseData));
         jsonResponse($responseData);
@@ -181,409 +154,7 @@ function processImage(){
             'line'    => $e->getLine(),
             'file'    => $e->getFile()
         ]);
-    }finally {
-
-        if(
-            !empty($filePath)
-            &&
-            file_exists($filePath)
-        ){
-            unlink($filePath);
-        }
     }
-}
-
-
-function resolveRecipientName($phone, $ocrName, $fullText){
-
-    global $db;
-
-    // =========================================
-    // RESPUESTA BASE
-    // =========================================
-    $response = [
-        'name'           => $ocrName,
-        'phoneExists'    => false,
-        'isNewPhone'     => true,
-        'exactMatch'     => false,
-        'similarMatch'   => false,
-        'bestSimilarity' => 0,
-        'status'         => 'new_phone',
-        'allowAutoRegister' => false
-    ];
-
-    // =========================================
-    // LIMPIAR TELEFONO
-    // =========================================
-    $phone = preg_replace('/\D/', '', $phone);
-
-    if(strlen($phone) != 10){
-        return $response;
-    }
-
-    // =========================================
-    // BUSCAR CONTACTOS
-    // =========================================
-    $sql = "
-        SELECT id_contact, contact_name
-        FROM cat_contact
-        WHERE phone = '".$phone."'
-    ";
-
-    writeLog('SQL: '.$sql);
-
-    $rows = $db->select($sql);
-
-    // =========================================
-    // TELEFONO NUEVO
-    // =========================================
-    if(empty($rows)){
-        return $response;
-    }
-
-    // =========================================
-    // TELEFONO EXISTE
-    // =========================================
-    $response['phoneExists'] = true;
-    $response['isNewPhone']  = false;
-    $response['status']      = 'phone_exists';
-
-    // =========================================
-    // DIVIDIR OCR EN LINEAS
-    // =========================================
-    $lines = preg_split('/\r\n|\r|\n/', $fullText);
-
-    // agregar OCR name
-    $lines[] = $ocrName;
-
-    $bestMatch      = '';
-    $bestSimilarity = 0;
-
-    // =========================================
-    // RECORRER CONTACTOS
-    // =========================================
-    writeLog('CONTACTOS ENCONTRADOS: '.json_encode($rows));
-    foreach($rows as $row){
-
-        $dbName = trim($row['contact_name']);
-        $dbNameClean = normalizeText($dbName);
-
-        // =====================================
-        // RECORRER LINEAS OCR
-        // =====================================
-        foreach($lines as $line){
-
-            $lineClean = normalizeText($line);
-
-            // ignorar líneas pequeñas
-            if(strlen($lineClean) < 5){
-                continue;
-            }
-
-            // =================================
-            // MATCH EXACTO
-            // =================================
-            if($lineClean == $dbNameClean){
-
-                $response['name']           = $dbName;
-                $response['exactMatch']     = true;
-                $response['similarMatch']   = true;
-                $response['bestSimilarity'] = 100;
-                $response['status']         = 'exact_match';
-                $response['allowAutoRegister'] = true;
-                return $response;
-            }
-
-            if(
-                strpos($dbNameClean, $lineClean) !== false
-                ||
-                strpos($lineClean, $dbNameClean) !== false
-            ){
-
-                $percent = 95;
-
-                // priorizar nombres más largos
-                $percent += strlen($dbNameClean) * 0.1;
-
-                if($percent > $bestSimilarity){
-
-                    $bestSimilarity = $percent;
-                    $bestMatch      = $dbName;
-                }
-            }
-
-            // =================================
-            // SIMILITUD
-            // =================================
-            similar_text($lineClean, $dbNameClean, $percent);
-
-            // =================================
-            // BONUS POR PALABRAS
-            // =================================
-            $dbWords = explode(' ', $dbNameClean);
-
-            $matches = 0;
-
-            foreach($dbWords as $word){
-
-                if(strlen($word) >= 4 && strpos($lineClean, $word) !== false){
-                    $matches++;
-                }
-            }
-
-            // bonus similitud
-            $percent += ($matches * 20);
-            if($percent > 100){
-                $percent = 100;
-            }
-
-            // =================================
-            // GUARDAR MEJOR MATCH
-            // =================================
-            if($percent > $bestSimilarity){
-
-                $bestSimilarity = $percent;
-                $bestMatch      = $dbName;
-            }
-        }
-    }
-
-    // =========================================
-    // MATCH SIMILAR
-    // =========================================
-    if($bestSimilarity >= 55){
-
-        $response['name']           = $bestMatch;
-        $response['similarMatch']   = true;
-        $response['bestSimilarity'] = $bestSimilarity;
-        $response['status']         = 'similar_match';
-
-        if($bestSimilarity >= 95){
-            $response['allowAutoRegister'] = true;
-        }
-
-        return $response;
-    }
-
-    // =========================================
-    // TELEFONO EXISTE
-    // PERO NOMBRE NO COINCIDE
-    // =========================================
-    $response['bestSimilarity'] = $bestSimilarity;
-    $response['status']         = 'phone_exists_name_no_match';
-
-    return $response;
-}
-
-
-function normalizeText($text){
-    // convertir a minúsculas
-    $text = mb_strtolower(trim($text),'UTF-8');
-    // quitar acentos
-    $text = iconv('UTF-8','ASCII//TRANSLIT',$text);
-    // quitar caracteres especiales
-    $text = preg_replace('/[^a-z0-9\s]/',' ',$text);
-    // quitar espacios múltiples
-    $text = preg_replace('/\s+/',' ',$text);
-    // trim final
-    $text = trim($text);
-    
-    return $text;
-}
-
-function getName($lines, $invalidLines){
-
-    $name = '';
-    foreach($lines as $line){
-        $candidate = trim($line);
-        // quitar Nombre:
-        $candidate = preg_replace('/^Nombre\s*:\s*/iu','',$candidate);
-        // quitar TO
-        $candidate = preg_replace('/^TO\s+/iu','',$candidate);
-        // excluir basura
-        if(in_array(mb_strtoupper($candidate),array_map('mb_strtoupper', $invalidLines))){
-            continue;
-        }
-
-        // excluir líneas muy cortas
-        if(mb_strlen($candidate) < 4){
-            continue;
-        }
-
-        // excluir si contiene calle
-        if(preg_match('/calle|direccion|address/iu',$candidate)){
-            continue;
-        }
-
-        // excluir si tiene demasiados números
-        if(preg_match_all('/\d/', $candidate) > 3){
-            continue;
-        }
-
-        // debe tener letras
-        if(!preg_match('/[a-záéíóúñ]/iu', $candidate)){
-            continue;
-        }
-        $name = $candidate;
-        break;
-    }
-    return $name;
-}
-
-function getPhone($fullText){
-
-    $text = mb_strtolower($fullText,'UTF-8');
-    $lines = preg_split('/\r\n|\r|\n/',$text);
-    $candidates = [];
-    foreach($lines as $line){
-        // línea posible teléfono
-        if(
-            preg_match('/tel|telefono|cel|celular|movil|\+52|\d{10}/iu',$line)){
-            // extraer grupos numéricos
-            preg_match_all('/[\d\+\-\s\/]{10,20}/',$line,$matches);
-            if(empty($matches[0])){
-                continue;
-            }
-            foreach($matches[0] as $raw){
-                // limpiar
-                $digits = preg_replace('/\D/','',$raw);
-
-                // =================================
-                // quitar /+52 al final
-                // =================================
-                if(preg_match('/\/\+52\s*$/', $raw)){
-                    if(substr($digits,-2) == '52'){
-                        $digits = substr($digits,0,-2);
-                    }
-                }
-
-                // =================================
-                // quitar 52 al inicio
-                // =================================
-                if(substr($digits,0,2) == '52'&&strlen($digits) > 10){
-                    $digits = substr($digits,2);
-                }
-
-                // =================================
-                // quitar 01
-                // =================================
-                if(substr($digits,0,2) == '01'&&strlen($digits) > 10){
-                    $digits = substr($digits,2);
-                }
-
-                // =================================
-                // tomar SOLO primeros 10
-                // =================================
-                if(strlen($digits) > 10){
-                    $digits = substr($digits,0,10);
-                }
-
-                // =================================
-                // validar
-                // =================================
-                if(
-                    preg_match('/^[0-9]{10}$/',$digits)
-                    &&
-                    !preg_match('/^(\d)\1{9}$/',$digits)
-                    &&
-                    !preg_match('/^800/',$digits)
-                ){
-                    $candidates[] = $digits;
-                }
-            }
-        }
-    }
-    // =========================================
-    // SIN CANDIDATOS
-    // =========================================
-    if(empty($candidates)){
-        return '';
-    }
-
-    // =========================================
-    // PRIORIZAR CELULARES MX
-    // =========================================
-    foreach($candidates as $phone){
-        if(
-            preg_match(
-                '/^(72|73|74|75|76|77|55|56|81|33)/',
-                $phone
-            )
-        ){
-            return $phone;
-        }
-    }
-    // fallback
-    return $candidates[0];
-}
-
-function getAddress($lines, $name, $phone, $postalCode, $invalidLines){
-    $address = '';
-    $addressLines = [];
-    foreach($lines as $line){
-        $candidate = trim($line);
-
-        // excluir nombre
-        if( stripos($candidate, $name) !== false){
-            continue;
-        }
-
-        // excluir teléfono
-        if(strpos($candidate, $phone) !== false){
-            continue;
-        }
-
-        // excluir CP
-        if(strpos($candidate, $postalCode) !== false){
-            $candidate = preg_replace(
-                '/\b'.$postalCode.'\b/',
-                '',
-                $candidate
-            );
-        }
-
-        // excluir basura OCR
-        if(in_array(strtoupper($candidate),$invalidLines)){
-            continue;
-        }
-
-        // excluir líneas muy cortas
-        if(mb_strlen($candidate) < 4){
-            continue;
-        }
-        // excluir Nombre:
-        if(preg_match('/^Nombre\s*:/iu',$candidate)){
-            continue;
-        }
-        // excluir líneas TEL
-        if(preg_match('/tel|cp:/iu',$candidate)){
-            continue;
-        }
-        // quitar TO
-        $candidate = preg_replace('/^TO\s+/iu','',$candidate);
-        $addressLines[] = $candidate;
-    }
-
-    // unir dirección
-    $address = implode(', ',$addressLines);
-
-    // limpiar múltiples espacios
-    $address = preg_replace('/\s+/',' ',$address);
-
-    // limpiar comas dobles
-    $address = preg_replace('/,+/',',', $address);
-
-    return $address;
-}
-
-function getPostalCode($fullText){
-    $postalCode = '';
-    // solo CP que inicien con 62
-    if(preg_match('/\b(62\d{3})\b/',$fullText,$cpMatch)){
-        $postalCode = $cpMatch[1];
-    }
-
-    return $postalCode;
 }
 
 function saveDataOcr(){
@@ -599,19 +170,18 @@ function saveDataOcr(){
     $marker        = $_POST['packageColor'] ?? '';
     $id_cat_parcel = $_POST['courierType'] ?? '';
     $id_user       = $_SESSION["uId"];
+    $evidencePath = trim($_POST['evidencePath'] ?? '');
 
     try{
-
         // =====================================
         // VALIDAR TRACKING DUPLICADO
         // =====================================
-
         $sqlCheck = "SELECT COUNT(tracking) total 
             FROM package 
             WHERE tracking IN ('".$tracking."')
         ";
         $rstCheck = $db->select($sqlCheck);
-        $total = $rstCheck[0]['total'];
+        $total    = $rstCheck[0]['total'];
 
         if($total > 0 ){
             $sqlPackage = "SELECT folio 
@@ -639,14 +209,14 @@ function saveDataOcr(){
                 'message'       => 'La guía ya existe',
                 'initial'       => $initial,
                 'folio'         => $folioExistente,
-                'tracking'      => $tracking
+                'tracking'      => $tracking,
+                'contact_name' => $name
             ]);
         }
 
         // =====================================
         // VALIDAR CONTACTO
         // =====================================
-
         $sqlCheck = "SELECT id_contact
             FROM cat_contact 
             WHERE 
@@ -655,7 +225,6 @@ function saveDataOcr(){
                 AND id_location IN(".$idLocation.") 
                 AND id_contact_status = 1
         ";
-
         $existing = $db->select($sqlCheck);
 
         if(empty($existing)){
@@ -668,8 +237,7 @@ function saveDataOcr(){
                     AND id_contact_type IN(2)
             ";
 
-            $rstCheck = $db->select($sqlCheckTypeContact);
-
+            $rstCheck     = $db->select($sqlCheckTypeContact);
             $totalContact = $rstCheck[0]['total'];
 
             $id_contact_type =
@@ -692,23 +260,18 @@ function saveDataOcr(){
                     'cat_contact',
                     $contact
                 );
-
         }else{
-
-            $id_contact =
-                $existing[0]['id_contact'];
+            $id_contact = $existing[0]['id_contact'];
         }
 
         // =====================================
         // VALIDAR CONTACTO
         // =====================================
-
         if(
             empty($id_contact)
             ||
             $id_contact == 0
         ){
-
             jsonResponse([
                 'success' => false,
                 'message' => 'No se pudo registrar contacto'
@@ -719,26 +282,24 @@ function saveDataOcr(){
         // GENERAR FOLIO
         // =====================================
 
-        $db->sqlPure("UPDATE folio
-            SET folio = LAST_INSERT_ID(
-                CASE
-                    WHEN folio >= 999 THEN 1
-                    ELSE folio + 1
-                END
-            )
+        $db->sqlPure("UPDATE folio 
+            SET folio = LAST_INSERT_ID( 
+                CASE 
+                    WHEN folio >= 999 THEN 1 
+                    ELSE folio + 1 
+                END 
+            ) 
             WHERE id_location = ".(int)$idLocation."
         ");
 
         $records = $db->select("SELECT LAST_INSERT_ID() AS nuevo_folio");
-
-        $folio = $records[0]['nuevo_folio'];
+        $folio   = $records[0]['nuevo_folio'];
 
         // =====================================
         // INSERT PACKAGE
         // =====================================
 
         $fecha_actual = date("Y-m-d H:i:s");
-
         $data = [
             'id_package'     => null,
             'id_location'    => $idLocation,
@@ -752,14 +313,25 @@ function saveDataOcr(){
             'id_cat_parcel'  => $id_cat_parcel,
             'id_type_mode'   => 3, //OCR
             'marker'         => $marker,
-            'address'        => $address
+            'address'        => $address,
+            'cp'    => $postalCode
         ];
 
-        $new_id_package =
-            $db->insert(
-                'package',
-                $data
-            );
+        $new_id_package = $db->insert('package',$data);
+        if(
+            !empty($evidencePath)
+            &&
+            file_exists($evidencePath)
+        ){
+            $evidence = [
+                'id_package'  => $new_id_package,
+                'id_user'     => $id_user,
+                'path'        => $evidencePath,
+                'id_location' => $idLocation
+            ];
+
+            $db->insert('evidence',$evidence);
+        }
 
         // =====================================
         // RESPONSE
@@ -782,16 +354,15 @@ function saveDataOcr(){
             'initial' => $initial,
             'folio'   => $folio,
             'tracking'=> $tracking,
-            'id_package' => $new_id_package
+            'id_package' => $new_id_package,
+            'contact_name' => $name
         ]);
 
     }catch(Exception $e){
-
         writeLog(
             'ERROR saveDataOcr: '
             .$e->getMessage()
         );
-
         jsonResponse([
             'success' => false,
             'message' => $e->getMessage()

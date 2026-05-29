@@ -53,10 +53,10 @@ OCR MODAL
 }
 #ocr-overlay{
     position: absolute;
-    top: 10%;
+    top: 5%;
     left: 10%;
     width: 80%;
-    height: 75%;
+    height: 88%;
     border:2px solid #00ff44;
     border-radius:8px;
     box-shadow:0 0 0 9999px rgba(0,0,0,.45);
@@ -195,14 +195,47 @@ OCR MODAL
     line-height:1.3;
     margin-bottom:10px;
 }
+/* PRINCIPALES */
+#ocr-qr,
+#ocr-phone,
+#ocr-name{
+    font-size:20px;
+    font-weight:700;
+    color:#000;
+    line-height:1.2;
+}
+/* SECUNDARIOS */
+#ocr-postal-code{
+    font-size:14px;
+    font-weight:500;
+    color:#555;
+    line-height:1.3;
+}
+#ocr-address{
+    font-size:13px;
+    color:#666;
+}
+.ocr-info-row{
+    display:flex;
+    align-items:center;
+    margin-bottom:8px;
+}
+.ocr-highlight{
+    background:#f8f9fa;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:8px 12px;
+}
 
 .ocr-info-row{
-    margin-bottom:4px;
-    word-break:break-word;
+    display:flex;
+    align-items:flex-start;
+    margin-bottom:8px;
 }
 
 .ocr-info-row strong{
-    color:#111;
+    min-width:70px;
+    color:#333;
 }
 .ocr-show-result .badge{
     font-size:20px;
@@ -254,27 +287,34 @@ OCR MODAL
                     </div>
 
                     <!-- Result -->
-                    <div class="ocr-show-result" id="ocr-show-result"> 
-                        <span class="badge badge-success" id="ocr-initial">A</span>
-                        <span class="badge badge-primary" id="ocr-folio">127</span>
+                    <div class="ocr-show-result" id="ocr-show-result">
+                        <span class="badge badge-primary" id="ocr-folio">000</span>
+                        <span class="badge badge-success" id="ocr-initial">-</span>
                     </div>
 
                     <!-- QR -->
                     <div class="ocr-info">
-                        <div class="ocr-info-row">
-                            <strong>Guía:</strong><span id="ocr-qr">-</span>
+                        <div
+                            id="ocr-validation-status"style="margin-top:6px;margin-bottom:6px;"></div>
+                        <div class="ocr-info-row ocr-highlight">
+                            <strong></strong><span id="ocr-qr">-</span>
                         </div>
-                         <div class="ocr-info-row">
-                            <strong>Tel:</strong><span id="ocr-phone">-</span>
+                        <div class="ocr-info-row">
+                            <strong id="lbl-phone">Teléfono:</strong>
+                            <span id="ocr-phone">-</span>
                         </div>
                         <div class="ocr-info-row">
-                            <strong>Nombre:</strong><span id="ocr-name">-</span>
+                            <strong id="lbl-name">Nombre:</strong>
+                            <span id="ocr-name">-</span>
+                        </div>
+                        <button id="btn-use-suggested-name">
+                            Usar nombre sugerido
+                        </button>
+                        <div class="ocr-info-row">
+                            <strong>CP:</strong><span id="ocr-postal-code">-</span>
                         </div>
                         <div class="ocr-info-row">
                             <strong>Dir:</strong><span id="ocr-address">-</span>
-                        </div>
-                        <div class="ocr-info-row">
-                            <strong>CP:</strong><span id="ocr-postal-code">-</span>
                         </div>
                         <div class="ocr-info-row">
                             <strong>Full text:</strong><span id="ocr-full-text">-</span>
