@@ -43,7 +43,7 @@ $(document).ready(function () {
             applyPackageColor();
         }
         resetLabels();
-        if (selectedCourierType == 1) {
+        if (selectedCourierType == 1 || selectedCourierType == 2) {
             openOcrCamera();
         } else {
             openQrModal();
@@ -445,6 +445,7 @@ $(document).ready(function () {
         formData.append('qr', qrDetected);
         formData.append('idLocation', idLocation);
         formData.append('imageName', imageName);
+        formData.append('courierType',selectedCourierType);
         formData.append('action', 'processImage');
         $.ajax({
             url: `${base_url}/controllers/ocrRecipient.php`,
@@ -482,7 +483,7 @@ $(document).ready(function () {
                 $('#ocr-address').html(response.address || '-');
                 $('#ocr-postal-code').html(response.postalCode || '-');
                 evidencePath = response.evidencePath || '';
-                $('#ocr-full-text').html(
+                /*$('#ocr-full-text').html(
                     `
                     ${response.fullText || '-'}
                     <div style="
@@ -493,7 +494,7 @@ $(document).ready(function () {
                         OCR: ${totalTime}s
                     </div>
                     `
-                );
+                );*/
                 renderValidationStatus(
                     response.ocrDb
                 );
@@ -506,7 +507,6 @@ $(document).ready(function () {
                     response.ocrDb &&
                     response.ocrDb.status === 'auto_register'
                 ){
-
                     setTimeout(function(){
                         $('#btn-save-ocr').trigger('click'); //#########TRIGER AUTO SAVE#########
                     }, 400);
@@ -691,7 +691,7 @@ $(document).ready(function () {
         $('#modal-scan-qr-ocr').modal('hide');
         $('#ocr-save-result').hide();
         setTimeout(function () {
-            if (selectedCourierType == 1) {
+            if (selectedCourierType == 1 || selectedCourierType == 2) {
                 openOcrCamera();
             } else {
                 openQrModal();
@@ -761,7 +761,7 @@ $(document).ready(function () {
                         title: 'Registrado',
                         text: '  ',//response.message,
                         icon: 'success',
-                        timer: 1500,
+                        timer: 2500,
                         buttons: false
                     });
                 }

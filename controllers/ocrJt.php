@@ -68,8 +68,7 @@ class OcrJt {
 
    public function getPostalCodeJt($fullText){
         // Buscar CP explícito
-        if (
-            preg_match('/C\.?P\.?\s*:?\s*(\d{5})/i',$fullText,$match)) {
+        if (preg_match('/C\.?P\.?\s*:?\s*(\d{5})/i',$fullText,$match)) {
             return $match[1];
         }
 
@@ -89,7 +88,7 @@ class OcrJt {
     public function getAddressJt($fullText){
         $lines = preg_split('/\r\n|\r|\n/', trim($fullText));
 
-        $capture = false;
+        $capture      = false;
         $addressLines = [];
 
         foreach ($lines as $line) {

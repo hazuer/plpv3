@@ -13,6 +13,7 @@ require_once('../includes/configuration.php');
 require_once('../includes/DB.php');
 require_once('../includes/functions.php');
 require_once('ocrJt.php');
+require_once('ocrImile.php');
 $db = new DB(HOST,USERNAME,PASSWD,DBNAME,PORT,SOCKET);
 
 header('Content-Type: application/json');
@@ -100,46 +101,75 @@ function processImage(){
             }
         }
         // full text cleanup
-        $fullText = trim((string)$fullText);
-    
-        $ocrJt      = new OcrJt();
-        $trackingJT = $ocrJt->getTrackingJt($fullText);
-        if(empty($trackingJT)){
-            writeLog('No se pudo extraer tracking JT del OCR');
-            jsonResponse([
-                'success' => false,
-                'message' => 'No se pudo extraer tracking JT del OCR',
-            ]);
-        }
-        $phoneJt = $ocrJt->getPhoneJt($fullText);
-        if(empty($phoneJt)){
-            writeLog('No se pudo extraer teléfono del OCR');
-            jsonResponse([
-            'success' => false,
-            'message' => 'No se pudo extraer teléfono del OCR',
-            ]);
-        }
-        $nameJt = $ocrJt->getNameJt($fullText);
+        $fullText   = trim((string)$fullText);
+        $tracking   = '';
+        $phone      = '';
+        $name       = '';
+        $postalCode = '';
+        $address    = '';
+        $contactValidation = [];
 
-        $contactValidation = $ocrJt->validateRecipientJt($phoneJt,$nameJt);
-        writeLog('OCR DB: ' . json_encode($contactValidation));
+        $courierType = $_POST['courierType'] ?? 1;
+        switch($courierType){
 
-        $postalCode = $ocrJt->getPostalCodeJt($fullText);
-        $address    = $ocrJt->getAddressJt($fullText);
+            case 1:
+                $ocr = new OcrJt();
+                $tracking          = $ocr->getTrackingJt($fullText);
+                $phone             = $ocr->getPhoneJt($fullText);
+                $name              = $ocr->getNameJt($fullText);
+                $postalCode        = $ocr->getPostalCodeJt($fullText);
+                $address           = $ocr->getAddressJt($fullText);
+                $contactValidation = $ocr->validateRecipientJt($phone,$name);
+            break;
+
+            case 2:
+                writeLog('OCR IMILE COMPLETO: ' . $fullText);
+                $ocr = new OcrImile();
+                writeLog('path: ' . $filePath);
+                $tracking          = $ocr->getTrackingImile($filePath, $fullText);
+                $phone             = $ocr->getPhoneImile($fullText);
+                writeLog('phone: ' . $phone);
+                $name              = $ocr->getNameImile($fullText,$phone);
+                writeLog('name: ' . $name);
+                $postalCode        = $ocr->getPostalCodeImile($fullText);
+                writeLog('postalCode: ' . $postalCode);
+                $address           = $ocr->getAddressImile($fullText,$phone);
+                writeLog('address: ' . $address);
+                $contactValidation = $ocr->validateRecipientImile($phone,$name);
+            break;
+
+            default:
+                jsonResponse(['success' => false,'message' => 'Paquetería no soportada']);
+            break;
+        }
+        // VALIDAR TRACKING
+        if(empty($tracking)){
+            jsonResponse(['success' => false,'message' => 'No se pudo extraer tracking del OCR']);
+        }
+
+        // VALIDAR TELEFONO
+        if(empty($phone)){
+            jsonResponse(['success' => false,'message' => 'No se pudo extraer teléfono del OCR']);
+        }
+
+        // VALIDAR NOMBRE
+        if(empty($name)){
+            jsonResponse(['success' => false,'message' => 'No se pudo extraer nombre del OCR']);
+        }
 
         // close client
         $imageAnnotator->close();
 
         $responseData = [
-            'success'  => true, //TODO
-            'tracking' => $trackingJT,
-            'phone'    => $phoneJt,
-            'name'     => $nameJt,
-            'address'  => $address,
-            'postalCode' => $postalCode,
-            //'fullText' => json_encode($contactValidation),
-            'ocrDb'    => $contactValidation,
-            'evidencePath'=> $filePath
+            'success'      => true,
+            'tracking'     => $tracking,
+            'phone'        => $phone,
+            'name'         => $name,
+            'address'      => $address,
+            'postalCode'   => $postalCode,
+            'fullText'   => json_encode($fullText),
+            'ocrDb'        => $contactValidation,
+            'evidencePath' => $filePath
         ];
         writeLog('result: ' . json_encode($responseData));
         jsonResponse($responseData);
@@ -170,12 +200,12 @@ function saveDataOcr(){
     $marker        = $_POST['packageColor'] ?? '';
     $id_cat_parcel = $_POST['courierType'] ?? '';
     $id_user       = $_SESSION["uId"];
-    $evidencePath = trim($_POST['evidencePath'] ?? '');
+    $evidencePath  = trim($_POST['evidencePath'] ?? '');
+
+    //TODO: Validaciones básicas de datos (teléfono, tracking, etc) campos vacíos, formato, etc
 
     try{
-        // =====================================
         // VALIDAR TRACKING DUPLICADO
-        // =====================================
         $sqlCheck = "SELECT COUNT(tracking) total 
             FROM package 
             WHERE tracking IN ('".$tracking."')
@@ -214,9 +244,7 @@ function saveDataOcr(){
             ]);
         }
 
-        // =====================================
         // VALIDAR CONTACTO
-        // =====================================
         $sqlCheck = "SELECT id_contact
             FROM cat_contact 
             WHERE 
@@ -228,7 +256,6 @@ function saveDataOcr(){
         $existing = $db->select($sqlCheck);
 
         if(empty($existing)){
-
             $sqlCheckTypeContact = " SELECT COUNT(id_contact_type) AS total 
                 FROM cat_contact 
                 WHERE 
@@ -256,17 +283,12 @@ function saveDataOcr(){
             ];
 
             $id_contact =
-                $db->insert(
-                    'cat_contact',
-                    $contact
-                );
+                $db->insert('cat_contact',$contact);
         }else{
             $id_contact = $existing[0]['id_contact'];
         }
 
-        // =====================================
         // VALIDAR CONTACTO
-        // =====================================
         if(
             empty($id_contact)
             ||
@@ -278,10 +300,7 @@ function saveDataOcr(){
             ]);
         }
 
-        // =====================================
         // GENERAR FOLIO
-        // =====================================
-
         $db->sqlPure("UPDATE folio 
             SET folio = LAST_INSERT_ID( 
                 CASE 
@@ -295,10 +314,7 @@ function saveDataOcr(){
         $records = $db->select("SELECT LAST_INSERT_ID() AS nuevo_folio");
         $folio   = $records[0]['nuevo_folio'];
 
-        // =====================================
         // INSERT PACKAGE
-        // =====================================
-
         $fecha_actual = date("Y-m-d H:i:s");
         $data = [
             'id_package'     => null,
@@ -316,7 +332,6 @@ function saveDataOcr(){
             'address'        => $address,
             'cp'    => $postalCode
         ];
-
         $new_id_package = $db->insert('package',$data);
         if(
             !empty($evidencePath)
@@ -329,14 +344,10 @@ function saveDataOcr(){
                 'path'        => $evidencePath,
                 'id_location' => $idLocation
             ];
-
             $db->insert('evidence',$evidence);
         }
 
-        // =====================================
         // RESPONSE
-        // =====================================
-
         $initial =
             !empty($name)
             ? mb_strtoupper(

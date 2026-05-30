@@ -297,7 +297,7 @@ OCR MODAL
                         <div
                             id="ocr-validation-status"style="margin-top:6px;margin-bottom:6px;"></div>
                         <div class="ocr-info-row ocr-highlight">
-                            <strong></strong><span id="ocr-qr">-</span>
+                            <strong></strong><span id="ocr-qr"></span>
                         </div>
                         <div class="ocr-info-row">
                             <strong id="lbl-phone">Teléfono:</strong>
