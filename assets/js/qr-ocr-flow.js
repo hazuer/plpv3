@@ -1,18 +1,10 @@
 $(document).ready(function () {
-    let ocrSaved      = false;
-    let html5QrCode   = null;
-    let qrDetected    = '';
     let currentStream = null;
     let ocrStartTime  = 0;
-    let evidencePath = '';
-
-    const $btnTest = $('#btn-test');
-
-    /*$btnTest.off('click').on('click', function (e) {
-        e.preventDefault();
-        resetLabels();
-        openQrModal();
-    });*/
+    let evidencePath  = '';
+    let selectedColor = '';
+    let selectedCourierType = '';
+    const $btnTest    = $('#btn-test');
 
     $('#btn-save-ocr')
     .off('click')
@@ -26,9 +18,6 @@ $(document).ready(function () {
         resetQrOcrFlow();
     });
 
-    let selectedColor = '';
-    let selectedCourierType = '';
-
     $btnTest.off('click').on('click', async function (e) {
         e.preventDefault();
         // si falta alguno mostrar modal único
@@ -37,17 +26,12 @@ $(document).ready(function () {
             if (!config) {
                 return;
             }
-            selectedColor = config.color;
+            selectedColor       = config.color;
             selectedCourierType = config.courierType;
-
             applyPackageColor();
         }
         resetLabels();
-        if (selectedCourierType == 1 || selectedCourierType == 2) {
-            openOcrCamera();
-        } else {
-            openQrModal();
-        }
+        openOcrCamera();
     });
 
     function selectPackageConfig() {
@@ -112,161 +96,65 @@ $(document).ready(function () {
     }
 
     function validateTrackingByParcel(tracking) {
-    tracking = tracking.trim();
-    const parcelType = parseInt(selectedCourierType);
+        tracking = tracking.trim();
+        const parcelType = parseInt(selectedCourierType);
 
-    // =========================================
-    // J&T
-    // =========================================
-    if (parcelType === 1) {
-        let regex = /^JMX\d{12}$/i;
-        if ( tracking.length !== 15 || !regex.test(tracking)) {
+        // J&T
+        if (parcelType === 1) {
+            let regex = /^JMX\d{12}$/i;
+            if ( tracking.length !== 15 || !regex.test(tracking)) {
+                return {
+                    success: false,
+                    message: 'Guía J&T inválida. Debe tener formato JMX + 12 dígitos'
+                };
+            }
+            tracking = tracking.substring(0, 3).toUpperCase() + tracking.substring(3);
             return {
-                success: false,
-                message: 'Guía J&T inválida. Debe tener formato JMX + 12 dígitos'
+                success: true,
+                tracking
             };
         }
-        tracking = tracking.substring(0, 3).toUpperCase() + tracking.substring(3);
-        return {
-            success: true,
-            tracking
-        };
-    }
 
-    // =========================================
-    // IMILE
-    // =========================================
-    if (parcelType === 2) {
-        if (/^im\d{14}$/i.test(tracking)) {
-            tracking = tracking.toUpperCase();
-        }
-        const regexNumerico = /^\d{13,14}$/;
-        const regexIm       = /^IM\d{14}$/;
-        if ( !regexNumerico.test(tracking) && !regexIm.test(tracking) ) {
+        // IMILE
+        if (parcelType === 2) {
+            if (/^im\d{14}$/i.test(tracking)) {
+                tracking = tracking.toUpperCase();
+            }
+            const regexNumerico = /^\d{13,14}$/;
+            const regexIm       = /^IM\d{14}$/;
+            if ( !regexNumerico.test(tracking) && !regexIm.test(tracking) ) {
+                return {
+                    success: false,
+                    message: 'Guía IMILE inválida'
+                };
+            }
             return {
-                success: false,
-                message: 'Guía IMILE inválida'
+                success: true,
+                tracking
             };
         }
-        return {
-            success: true,
-            tracking
-        };
-    }
 
-    // =========================================
-    // CNMEX
-    // =========================================
-    if (parcelType === 3) {
-        let regex = /^CNMEX\d{10}$/i;
-        if ( tracking.length !== 15 || !regex.test(tracking)) {
+        // CNMEX
+        if (parcelType === 3) {
+            let regex = /^CNMEX\d{10}$/i;
+            if ( tracking.length !== 15 || !regex.test(tracking)) {
+                return {
+                    success: 
+                    false,message: 'Guía CNMEX inválida'
+                };
+            }
+            tracking = tracking.substring(0, 5).toUpperCase() + tracking.substring(5);
             return {
                 success: 
-                false,message: 'Guía CNMEX inválida'
+                true,tracking
             };
         }
-        tracking = tracking.substring(0, 5).toUpperCase() + tracking.substring(5);
-        return {
-            success: 
-            true,tracking
-        };
+
+        // OTRO
+        return {success: true,tracking};
     }
 
-    // =========================================
-    // OTRO
-    // =========================================
-    return {success: true,tracking};
-}
-
-    async function openQrModal() {
-        await stopQrScanner();
-        $('#qr-reader-ocr').html('');
-        let qrLabel = 'Escanea guía';
-        if (selectedCourierType == 1) {
-            qrLabel = 'Escanea guía J&T';
-        }
-        else if (selectedCourierType == 2) {
-            qrLabel = 'Escanea guía IMILE';
-        }
-        else if (selectedCourierType == 3) {
-            qrLabel = 'Escanea guía CNMEX';
-        }
-        else if (selectedCourierType == 99) {
-            qrLabel = 'Escanea cualquier guía';
-        }
-
-        $('.modal-title').html(`
-            <i class="fa fa-qrcode"></i>
-            ${qrLabel}
-        `);
-        $('#modal-scan-qr-ocr').modal({backdrop: 'static',keyboard: false});
-        html5QrCode = new Html5Qrcode("qr-reader-ocr");
-        try {
-            await html5QrCode.start({
-                    facingMode: "environment"
-                },{
-                    fps: 15,
-                    qrbox: 250,
-                    aspectRatio: 1
-                },
-                onScanSuccess
-            );
-        } catch (error) {
-            console.error(error);
-            swal( "Error", "No se pudo abrir la cámara QR", "error" );
-        }
-    }
-
-    // QR Scan Success
-    async function onScanSuccess(decodedText) {
-        if (qrDetected !== '') {
-            return;
-        }
-        // =========================================
-        // VALIDAR GUIA
-        // =========================================
-        const validation = validateTrackingByParcel(decodedText);
-
-        if (!validation.success) {
-            swal('Atención',validation.message,'error');
-            return;
-        }
-
-        qrDetected = validation.tracking;
-        $('#ocr-qr').html(qrDetected);
-        await stopQrScanner();
-        $('#modal-scan-qr-ocr').one(
-            'hidden.bs.modal',
-            function () {
-                openOcrCamera();
-            }
-        );
-        $('#modal-scan-qr-ocr').modal('hide');
-    }
-
-    // Stop QR
-    async function stopQrScanner() {
-        try {
-            if (html5QrCode) {
-                try {
-                    await html5QrCode.stop();
-                } catch (e) {
-                    console.warn(e);
-                }
-                try {
-                    await html5QrCode.clear();
-                } catch (e) {
-                    console.warn(e);
-                }
-                html5QrCode = null;
-            }
-        } catch (err) {
-            console.warn(err);
-        }
-        $('#qr-reader-ocr').html('');
-    }
-
-    // Open OCR Camera
+    // [1] Open OCR Camera
     async function openOcrCamera() {
         stopCamera();
         $('#modal-ocr-camera').modal({ backdrop: 'static', keyboard: false });
@@ -308,16 +196,47 @@ $(document).ready(function () {
         }
     }
 
-    // =====================================================
-    // CAPTURE FUNCTION
-    // =====================================================
+    function dataURLtoFile(dataurl, filename) {
+        const arr   = dataurl.split(',');
+        const mime  = arr[0].match(/:(.*?);/)[1];
+        const bstr  = atob(arr[1]);
+        let n       = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File(
+            [u8arr],
+            filename,
+            { type: mime }
+        );
+    }
 
+    async function readBarcodeFromImage(imageBase64) {
+        const container         = document.createElement('div');
+        container.id            = 'barcode-reader-' + Date.now();
+        container.style.display = 'none';
+        document.body.appendChild(container);
+        try {
+            const html5QrCode       = new Html5Qrcode(container.id);
+            const file        = dataURLtoFile(imageBase64,'capture.png');
+            const result      = await html5QrCode.scanFile( file, true );
+            await html5QrCode.clear();
+            container.remove();
+            return result;
+        } catch(e){
+            console.error(e);
+            //alert('ERROR REAL:\n\n' +(e.message ||JSON.stringify(e)));
+            container.remove();
+            return '';
+        }
+    }
+
+    // CAPTURE FUNCTION
     function captureOcr() {
 
         $('audio#sound-snap')[0].play();
-        const video = document.getElementById(
-            'video-ocr-camera'
-        );
+        const video = document.getElementById('video-ocr-camera');
 
         if (!video || !video.videoWidth) {
             swal("Error","La cámara aún no está lista","error");
@@ -360,6 +279,14 @@ $(document).ready(function () {
         const cropY      = (relativeY + offsetY) * scaleY;
         const cropWidth  = overlayRect.width * scaleX;
         const cropHeight = overlayRect.height * scaleY;
+
+        const barcodeCanvas  = document.createElement('canvas');
+        barcodeCanvas.width  = videoWidth;
+        barcodeCanvas.height = videoHeight;
+        const barcodeCtx     = barcodeCanvas.getContext('2d');
+        barcodeCtx.drawImage(video,0,0,videoWidth,videoHeight);
+        const barcodeImage   = barcodeCanvas.toDataURL('image/png');
+
         // CANVAS
         // mejorar resolución OCR
         canvas.width = cropWidth * 2.5;
@@ -368,7 +295,6 @@ $(document).ready(function () {
 
         // mejor calidad escalado
         ctx.imageSmoothingEnabled = true;
-
         ctx.imageSmoothingQuality = 'high';
 
         // filtros OCR
@@ -380,25 +306,10 @@ $(document).ready(function () {
             `.replace(/\s+/g, ' ');
 
         // dibujar imagen
-        ctx.drawImage(
-            video,
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
+        ctx.drawImage(video,cropX,cropY,cropWidth,cropHeight,0,0,canvas.width,canvas.height);
         ctx.globalCompositeOperation ='screen';
         ctx.fillStyle ='rgba(255,255,255,0.14)';
-        ctx.fillRect(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
+        ctx.fillRect(0,0,canvas.width,canvas.height);
         ctx.globalCompositeOperation ='source-over';
 
         // reset filtros
@@ -428,21 +339,47 @@ $(document).ready(function () {
         const imageBase64 = canvas.toDataURL('image/png');
         // INICIAR CRONOMETRO OCR
         ocrStartTime = performance.now();
-        sendImageToOcr(imageBase64);
+        //sendImageToOcr(imageBase64);
+
+        (async () => {
+            let trackingDetected = '';
+            try {
+                trackingDetected = await readBarcodeFromImage(barcodeImage);
+                //alert('trackingDetected: ' +trackingDetected);
+                //return;
+            } catch(e) {
+                //console.warn(e);
+            }
+
+            if (trackingDetected == '') {
+                swal('Atención','No es posible identificar la guía','warning');
+                return;
+            }
+
+            const validation = validateTrackingByParcel(trackingDetected);
+            if (!validation.success) {
+                swal('Atención',validation.message,'error');
+                return;
+            }
+            sendImageToOcr(imageBase64, trackingDetected
+            );
+        })();
     }
 
-    function sendImageToOcr(imageBase64) {
-        const idLocation = $('#option-location').val();
+    // [2] Send Image to OCR
+    function sendImageToOcr(imageBase64,trackingDetected = '') {
+
+        const idLocation     = $('#option-location').val();
         // prefijo ubicación
         const locationPrefix = $('#option-location option:selected').text().trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
         // random corto
-        const random = Math.random().toString(36).substring(2,10);
+        const random         = Math.random().toString(36).substring(2,10);
         // nombre final
-        const imageName = `${locationPrefix}_${random}.png`;
+        const imageName      = `${locationPrefix}_${random}.png`;
 
         let formData = new FormData();
         formData.append('image', imageBase64);
-        formData.append('qr', qrDetected);
+        formData.append('trackingDetected',trackingDetected);
         formData.append('idLocation', idLocation);
         formData.append('imageName', imageName);
         formData.append('courierType',selectedCourierType);
@@ -459,61 +396,43 @@ $(document).ready(function () {
                 $('#btn-save-ocr').hide();
                 $('#btn-capture-ocr').hide();
                 $('#btn-use-suggested-name').hide();
-                //swal({ title: 'Procesando OCR', text: 'Espere por favor', buttons: false });
                 loading();
                 $('.swal-button-container').hide();
             },
             success: function (response) {
                 swal.close();
-                // =========================================
                 // TIEMPO OCR
-                // =========================================
                 const ocrEndTime = performance.now();
                 const totalTime = ( (ocrEndTime - ocrStartTime) / 1000 ).toFixed(2);
 
                 if (!response.success) {
                     swal("Error",response.message,"error");
-                    $('#btn-save-ocr').hide();
                     $('#btn-capture-ocr').show();
                     return;
                 }
-                $('#ocr-qr').html(response.tracking || '-');
-                $('#ocr-name').html(response.name || '-');
-                $('#ocr-phone').html(response.phone || '-');
-                $('#ocr-address').html(response.address || '-');
-                $('#ocr-postal-code').html(response.postalCode || '-');
-                evidencePath = response.evidencePath || '';
-                /*$('#ocr-full-text').html(
-                    `
-                    ${response.fullText || '-'}
-                    <div style="
-                        color: green;
-                        font-weight: bold;
-                        margin-bottom: 10px;
-                    ">
-                        OCR: ${totalTime}s
-                    </div>
-                    `
-                );*/
-                renderValidationStatus(
-                    response.ocrDb
-                );
+                $('#ocr-qr').html(response.tracking);
+                $('#ocr-name').html(response.name);
+                $('#ocr-phone').html(response.phone);
+                $('#ocr-address').html(response.address);
+                $('#ocr-postal-code').html(response.postalCode);
+                evidencePath = response.evidencePath;
+                renderValidationStatus(response.ocrDb);
 
-                // =========================================
                 // AUTO REGISTRO
-                // =========================================
-                const validation = response.ocrDb;
                 if(
                     response.ocrDb &&
                     response.ocrDb.status === 'auto_register'
                 ){
                     setTimeout(function(){
-                        $('#btn-save-ocr').trigger('click'); //#########TRIGER AUTO SAVE#########
+                        //#########TRIGER AUTO SAVE#########
+                        $('#btn-save-ocr').trigger('click');
+                        //######### call to saveDataOcr()#########
                     }, 400);
                     $('#btn-save-ocr').hide();
                     $('#btn-capture-ocr').hide();
                 }else{
-                    $('#btn-save-ocr').hide();
+                    //TODO: Editar nombre o telefono para mejorar coincidencia
+                    //$('#btn-save-ocr').show();
                     $('#btn-capture-ocr').show();
                     swal({
                         title: 'No fue posible el registro automático',
@@ -536,20 +455,9 @@ $(document).ready(function () {
     $('#btn-use-suggested-name')
     .off('click')
     .on('click', function(){
-
         const suggested = $(this).data('name');
-
         $('#ocr-name').text(suggested);
-
-        $(this).hide();
-    });$('#btn-use-suggested-name')
-    .off('click')
-    .on('click', function(){
-
-        const suggested = $(this).data('name');
-
-        $('#ocr-name').text(suggested);
-
+        $('#btn-save-ocr').show();
         $(this).hide();
     });
 
@@ -570,8 +478,8 @@ $(document).ready(function () {
 
             case 'similar':
                 nameIcon = '🟡';
-                $('#btn-use-suggested-name')
-                    .data('name',validation.suggestedName).show();
+                $('#btn-use-suggested-name').data('name',validation.suggestedName).show();
+                $('#btn-save-ocr').show();
                 break;
 
             case 'variant':
@@ -594,18 +502,6 @@ $(document).ready(function () {
             document.activeElement.blur();
             stopCamera();
             $('#modal-ocr-camera').modal('hide');
-            setTimeout(function(){
-                location.reload();
-            }, 300);
-        });
-
-    // CLOSE QR
-    $('#btn-close-qr-modal')
-        .off('click')
-        .on('click', async function () {
-            document.activeElement.blur();
-            await stopQrScanner();
-            $('#modal-scan-qr-ocr').modal('hide');
             setTimeout(function(){
                 location.reload();
             }, 300);
@@ -641,68 +537,42 @@ $(document).ready(function () {
         }
     );
 
-    $('#modal-scan-qr-ocr').on(
-        'hidden.bs.modal',
-        async function () {
-            await stopQrScanner();
-        }
-    );
-
     // RESET LABELS
     function resetLabels() {
-        qrDetected = '';
-        $('#ocr-qr').html('-');
-        $('#ocr-name').html('-');
-        $('#ocr-phone').html('-');
-        $('#ocr-address').html('-');
-        $('#ocr-postal-code').html('-');
-        $('#ocr-full-text').html('-');
+        $('#ocr-qr').html('');
+        $('#ocr-name').html('');
+        $('#ocr-phone').html('');
+        $('#ocr-address').html('');
+        $('#ocr-postal-code').html('');
         $('#ocr-initial').html('');
         $('#ocr-folio').html('');
-        $('#ocr-validation-status').html('');
         $('#btn-use-suggested-name').hide();
         $('#ocr-save-result').hide();
         const canvas = document.getElementById('canvas-ocr-camera');
 
         if (canvas) {
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(
-                0,
-                0,
-                canvas.width,
-                canvas.height
-            );
+            ctx.clearRect(0,0,canvas.width,canvas.height);
         }
     }
 
     // RESET FLOW
     async function resetQrOcrFlow() {
-        ocrSaved = false;
         $('#btn-save-ocr').prop('disabled', false);
         $('#btn-capture-ocr').prop('disabled', false);
         $('#btn-save-ocr').show();
         $('#btn-capture-ocr').show();
         resetLabels();
         stopCamera();
-        $('#btn-save-ocr').prop('disabled', false);
-        $('#btn-capture-ocr').prop('disabled', false);
-        await stopQrScanner();
         $('#modal-ocr-camera').modal('hide');
-        $('#modal-scan-qr-ocr').modal('hide');
         $('#ocr-save-result').hide();
         setTimeout(function () {
-            if (selectedCourierType == 1 || selectedCourierType == 2) {
-                openOcrCamera();
-            } else {
-                openQrModal();
-            }
+            openOcrCamera();
         }, 500);
     }
 
+    // [3] Save OCR Data
     async function saveDataOcr(){
-        if(ocrSaved){
-            return;
-        }
 
         const qr      = $('#ocr-qr').text().trim();
         const name    = $('#ocr-name').text().trim();
@@ -710,6 +580,11 @@ $(document).ready(function () {
         const address = $('#ocr-address').text().trim();
         const postalCode = $('#ocr-postal-code').text().trim();
         const idLocation = $('#option-location').val();
+
+        if (qr == '' || name == '' || phone == '') {
+			swal("Atención!", "* Campos requeridos", "error");
+			return;
+		}
 
         let formData = new FormData();
         formData.append('qr', qr);
@@ -745,15 +620,13 @@ $(document).ready(function () {
                 speakPackageData(response);
                 $('#btn-capture-ocr').prop('disabled',true);
 
-                // =====================================
                 // YA EXISTE
-                // =====================================
                 if(response.alreadyExists){
                     swal({
                         title: 'Guía Registrada',
                         text: '  ',//response.message,
                         icon: 'success',
-                        timer: 1500,
+                        timer: 500,
                         buttons: false
                     });
                 }else{
@@ -761,14 +634,15 @@ $(document).ready(function () {
                         title: 'Registrado',
                         text: '  ',//response.message,
                         icon: 'success',
-                        timer: 2500,
+                        timer: 500,
                         buttons: false
                     });
                 }
 
                 setTimeout(function () {
-                    $('#btn-next-ocr').trigger('click'); //#########TRIGER AUTO NEXT#########
-                }, 4000);
+                    //#########TRIGER AUTO NEXT#########
+                    $('#btn-next-ocr').trigger('click');
+                }, 5000);
             }
         },
             error: function(xhr){

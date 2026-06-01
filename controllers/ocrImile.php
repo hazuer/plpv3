@@ -1,9 +1,10 @@
 <?php
-use Zxing\QrReader;
+// use Zxing\QrReader;
 
 
 class OcrImile {
 
+/*
     public function getTrackingImile($imagePath, $fullText = ''){
         // 1. Intentar QR
         $tracking = $this->getTrackingImileFromQR($imagePath);
@@ -71,7 +72,7 @@ class OcrImile {
         }
         return $matches[1][0];
     }
-
+*/
     public function getPhoneImile($fullText){
         $lines = array_values(
             array_filter(
@@ -94,9 +95,7 @@ class OcrImile {
         */
         if ($anchorIndex === null) {
             foreach ($lines as $index => $line) {
-
                 $normalized = preg_replace('/[^A-Z]/', '', $line);
-
                 if (
                     strpos($normalized, 'MORELOS') !== false &&
                     strpos($normalized, 'MEX') !== false
@@ -111,9 +110,7 @@ class OcrImile {
         */
         if ($anchorIndex === null) {
             foreach ($lines as $index => $line) {
-
                 $normalized = preg_replace('/[^A-Z]/', '', $line);
-
                 if (strpos($normalized, 'MORELOS') !== false) {
                     $anchorIndex = $index;
                 }
@@ -125,7 +122,6 @@ class OcrImile {
         */
         if ($anchorIndex === null) {
             foreach ($lines as $index => $line) {
-
                 if (strpos($line, 'CVJS34') !== false) {
                     $anchorIndex = $index;
                 }
@@ -143,22 +139,17 @@ class OcrImile {
         * Buscar teléfono hacia arriba desde el ancla
         */
         for ($i = $anchorIndex; $i >= 0; $i--) {
-
             preg_match_all('/(?:\+?52)?\d{10}/', $lines[$i], $matches);
-
             if (empty($matches[0])) {
                 continue;
             }
 
             foreach ($matches[0] as $candidate) {
-
                 $phone = preg_replace('/\D/', '', $candidate);
-
                 // 52 + 10 dígitos
                 if (strlen($phone) == 12 && substr($phone, 0, 2) == '52') {
                     return substr($phone, 2);
                 }
-
                 // 10 dígitos
                 if (strlen($phone) == 10) {
                     return $phone;

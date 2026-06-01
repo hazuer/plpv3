@@ -102,7 +102,7 @@ function processImage(){
         }
         // full text cleanup
         $fullText   = trim((string)$fullText);
-        $tracking   = '';
+        $tracking   = $_POST['trackingDetected'] ?? '';
         $phone      = '';
         $name       = '';
         $postalCode = '';
@@ -114,7 +114,7 @@ function processImage(){
 
             case 1:
                 $ocr = new OcrJt();
-                $tracking          = $ocr->getTrackingJt($fullText);
+                //$tracking          = $ocr->getTrackingJt($fullText);
                 $phone             = $ocr->getPhoneJt($fullText);
                 $name              = $ocr->getNameJt($fullText);
                 $postalCode        = $ocr->getPostalCodeJt($fullText);
@@ -126,7 +126,7 @@ function processImage(){
                 writeLog('OCR IMILE COMPLETO: ' . $fullText);
                 $ocr = new OcrImile();
                 writeLog('path: ' . $filePath);
-                $tracking          = $ocr->getTrackingImile($filePath, $fullText);
+                //$tracking          = $ocr->getTrackingImile($filePath, $fullText);
                 $phone             = $ocr->getPhoneImile($fullText);
                 writeLog('phone: ' . $phone);
                 $name              = $ocr->getNameImile($fullText,$phone);
@@ -143,9 +143,9 @@ function processImage(){
             break;
         }
         // VALIDAR TRACKING
-        if(empty($tracking)){
+        /*if(empty($tracking)){
             jsonResponse(['success' => false,'message' => 'No se pudo extraer tracking del OCR']);
-        }
+        }*/
 
         // VALIDAR TELEFONO
         if(empty($phone)){
@@ -167,7 +167,7 @@ function processImage(){
             'name'         => $name,
             'address'      => $address,
             'postalCode'   => $postalCode,
-            'fullText'   => json_encode($fullText),
+            'fullText'     => json_encode($fullText),
             'ocrDb'        => $contactValidation,
             'evidencePath' => $filePath
         ];

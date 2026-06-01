@@ -2,12 +2,12 @@
 
 class OcrJt {
 
-    public function getTrackingJt($fullText){
+    /*public function getTrackingJt($fullText){
         if (preg_match('/JMX\d{12}/i',$fullText,$match)) {
             return strtoupper($match[0]);
         }
         return '';
-    }
+    }*/
 
     public function getPhoneJt($fullText){
         // NIVEL 1
@@ -66,7 +66,7 @@ class OcrJt {
         return '';
     }
 
-   public function getPostalCodeJt($fullText){
+    public function getPostalCodeJt($fullText){
         // Buscar CP explícito
         if (preg_match('/C\.?P\.?\s*:?\s*(\d{5})/i',$fullText,$match)) {
             return $match[1];
@@ -115,126 +115,121 @@ class OcrJt {
             }
             $addressLines[] = $line;
         }
-
         $address = implode(' ', $addressLines);
 
         return trim(preg_replace('/\s+/', ' ', $address));
     }
 
     public function validateRecipientJt($phone, $ocrName){
-    global $db;
+        global $db;
 
-    $response = [
-        'phoneExists'       => false,
-        'phoneStatus'       => 'new',
-        'nameStatus'        => 'new',
-        'allowAutoRegister' => false,
-        'status'            => 'new_contact',
-        'ocrName'           => $ocrName,
-        'suggestedName'     => '',
-        'score'             => 0
-    ];
+        $response = [
+            'phoneExists'       => false,
+            'phoneStatus'       => 'new',
+            'nameStatus'        => 'new',
+            'allowAutoRegister' => false,
+            'status'            => 'new_contact',
+            'ocrName'           => $ocrName,
+            'suggestedName'     => '',
+            'score'             => 0
+        ];
+        $phone = preg_replace('/\D/', '', $phone);
 
-    $phone = preg_replace('/\D/', '', $phone);
-
-    if(strlen($phone) != 10){
-        return $response;
-    }
-
-    $sql = "SELECT contact_name 
-        FROM cat_contact 
-        WHERE phone = '".$phone."'
-    ";
-
-    $rows = $db->select($sql);
-    if(empty($rows)){
-        return $response;
-    }
-
-    $response['phoneExists'] = true;
-    $response['phoneStatus'] = 'found';
-    $ocrClean                = $this->normalizeText($ocrName);
-    $bestScore               = 0;
-    $bestMatch               = '';
-
-    foreach($rows as $row){
-
-        $dbName = trim($row['contact_name']);
-        $dbClean = $this->normalizeText($dbName);
-
-        // MATCH EXACTO
-        if($ocrClean === $dbClean){
-
-            $response['allowAutoRegister'] = true;
-            $response['status']            = 'auto_register';
-            $response['nameStatus']        = 'exact';
-            $response['suggestedName']     = $dbName;
-            $response['score']             = 100;
-
+        if(strlen($phone) != 10){
             return $response;
         }
 
-        similar_text($ocrClean,$dbClean,$score);
+        $sql = "SELECT contact_name 
+            FROM cat_contact 
+            WHERE phone = '".$phone."'
+        ";
 
-        // BONUS POR PREFIJO
-        if(
-            strpos($dbClean, $ocrClean) === 0
-            ||
-            strpos($ocrClean, $dbClean) === 0
-        ){
-            $score += 20;
+        $rows = $db->select($sql);
+        if(empty($rows)){
+            return $response;
         }
 
-        // BONUS POR PALABRAS
-        $ocrWords = explode(' ', $ocrClean);
-        $dbWords  = explode(' ', $dbClean);
-        $matches = 0;
+        $response['phoneExists'] = true;
+        $response['phoneStatus'] = 'found';
+        $ocrClean                = $this->normalizeText($ocrName);
+        $bestScore               = 0;
+        $bestMatch               = '';
 
-        foreach($ocrWords as $i => $ocrWord){
-            if(!isset($dbWords[$i])){
-                continue;
+        foreach($rows as $row){
+            $dbName = trim($row['contact_name']);
+            $dbClean = $this->normalizeText($dbName);
+
+            // MATCH EXACTO
+            if($ocrClean === $dbClean){
+                $response['allowAutoRegister'] = true;
+                $response['status']            = 'auto_register';
+                $response['nameStatus']        = 'exact';
+                $response['suggestedName']     = $dbName;
+                $response['score']             = 100;
+
+                return $response;
             }
+
+            similar_text($ocrClean,$dbClean,$score);
+
+            // BONUS POR PREFIJO
             if(
-                strpos($dbWords[$i], $ocrWord) === 0
+                strpos($dbClean, $ocrClean) === 0
                 ||
-                strpos($ocrWord, $dbWords[$i]) === 0
+                strpos($ocrClean, $dbClean) === 0
             ){
-                $matches++;
+                $score += 20;
+            }
+
+            // BONUS POR PALABRAS
+            $ocrWords = explode(' ', $ocrClean);
+            $dbWords  = explode(' ', $dbClean);
+            $matches  = 0;
+
+            foreach($ocrWords as $i => $ocrWord){
+                if(!isset($dbWords[$i])){
+                    continue;
+                }
+                if(
+                    strpos($dbWords[$i], $ocrWord) === 0
+                    ||
+                    strpos($ocrWord, $dbWords[$i]) === 0
+                ){
+                    $matches++;
+                }
+            }
+
+            $score += ($matches * 5);
+
+            if($score > 100){
+                $score = 100;
+            }
+
+            if($score > $bestScore){
+                $bestScore = $score;
+                $bestMatch = $dbName;
             }
         }
 
-        $score += ($matches * 5);
+        $response['suggestedName'] = $bestMatch;
+        $response['score']         = round($bestScore, 2);
 
-        if($score > 100){
-            $score = 100;
+        // REGLAS DE NEGOCIO
+        if($bestScore >= 90){
+            $response['allowAutoRegister'] = true;
+            $response['status']            = 'auto_register';
+            $response['nameStatus']        = 'exact';
+        }elseif($bestScore >= 80){
+            $response['status']     = 'suggest_name';
+            $response['nameStatus'] = 'similar';
+        }else{
+
+            $response['status']     = 'new_variant';
+            $response['nameStatus'] = 'variant';
         }
 
-        if($score > $bestScore){
-            $bestScore = $score;
-            $bestMatch = $dbName;
-        }
+        return $response;
     }
-
-    $response['suggestedName'] = $bestMatch;
-    $response['score']         = round($bestScore, 2);
-
-    // REGLAS DE NEGOCIO
-    if($bestScore >= 90){
-        $response['allowAutoRegister'] = true;
-        $response['status']            = 'auto_register';
-        $response['nameStatus']        = 'exact';
-
-    }elseif($bestScore >= 80){
-        $response['status']     = 'suggest_name';
-        $response['nameStatus'] = 'similar';
-    }else{
-
-        $response['status']     = 'new_variant';
-        $response['nameStatus'] = 'variant';
-    }
-
-    return $response;
-}
 
     public function normalizeText($text){
         // convertir a minúsculas

@@ -1,28 +1,3 @@
-<!-- =========================================================
-QR MODAL
-========================================================= -->
-<div class="modal fade" id="modal-scan-qr-ocr" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fa fa-qrcode"></i>
-                    Escanear Guía
-                </h5>
-                <button type="button" class="close" id="btn-close-qr-modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="qr-reader-ocr"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================
-OCR MODAL
-========================================================= -->
 <style>
 #modal-ocr-camera .modal-dialog{
     max-width:95%;
@@ -61,17 +36,6 @@ OCR MODAL
     border-radius:8px;
     box-shadow:0 0 0 9999px rgba(0,0,0,.45);
 }
-/*#ocr-overlay-label{
-    position:absolute;
-    top:3%;
-    left:23%;
-    color:#00ff44;
-    /*background:rgba(0,0,0,.6);*/
-    /*padding:4px 8px;
-    border-radius:5px;
-    font-size:13px;
-    font-weight:bold;
-}*/
 .ocr-preview-section{
     padding:10px;
     background:#f5f5f5;
@@ -273,9 +237,6 @@ OCR MODAL
                         <div id="video-container-ocr-camera">
                             <video id="video-ocr-camera" autoplay playsinline></video>
                             <div id="ocr-overlay"></div>
-                            <!--<div id="ocr-overlay-label">
-                                Coloque destinatario aquí
-                            </div>-->
                         </div>
                     </div>
 
@@ -288,36 +249,32 @@ OCR MODAL
 
                     <!-- Result -->
                     <div class="ocr-show-result" id="ocr-show-result">
-                        <span class="badge badge-primary" id="ocr-folio">000</span>
-                        <span class="badge badge-success" id="ocr-initial">-</span>
+                        <span class="badge badge-primary" id="ocr-folio"></span>
+                        <span class="badge badge-success" id="ocr-initial"></span>
                     </div>
 
                     <!-- QR -->
                     <div class="ocr-info">
-                        <div
-                            id="ocr-validation-status"style="margin-top:6px;margin-bottom:6px;"></div>
+                        <div id="ocr-validation-status"style="margin-top:6px;margin-bottom:6px;"></div>
                         <div class="ocr-info-row ocr-highlight">
                             <strong></strong><span id="ocr-qr"></span>
                         </div>
                         <div class="ocr-info-row">
                             <strong id="lbl-phone">Teléfono:</strong>
-                            <span id="ocr-phone">-</span>
+                            <span id="ocr-phone"></span>
                         </div>
                         <div class="ocr-info-row">
                             <strong id="lbl-name">Nombre:</strong>
-                            <span id="ocr-name">-</span>
+                            <span id="ocr-name"></span>
                         </div>
                         <button id="btn-use-suggested-name">
                             Usar nombre sugerido
                         </button>
                         <div class="ocr-info-row">
-                            <strong>CP:</strong><span id="ocr-postal-code">-</span>
+                            <strong>CP:</strong><span id="ocr-postal-code"></span>
                         </div>
                         <div class="ocr-info-row">
-                            <strong>Dir:</strong><span id="ocr-address">-</span>
-                        </div>
-                        <div class="ocr-info-row">
-                            <strong>Full text:</strong><span id="ocr-full-text">-</span>
+                            <strong>Dir:</strong><span id="ocr-address"></span>
                         </div>
                     </div>
 
