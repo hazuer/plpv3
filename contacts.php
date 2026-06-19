@@ -37,6 +37,7 @@ c.c_date,
 CASE 
 	c.id_type_mode WHEN 1 THEN 'Manual'
 	WHEN 2 THEN 'Automático'
+	WHEN 3 THEN 'OCR'
 END AS tipo_modo,
 c.id_type_mode 
 FROM cat_contact c 

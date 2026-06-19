@@ -1,12 +1,13 @@
 <?php
 session_start();
-#error_reporting(E_ALL);
-#ini_set('display_errors', '1');
+//error_reporting(E_ALL);
+//ini_set('display_errors', '1');
 
 define( '_VALID_MOS', 1 );
 
 require_once('../includes/configuration.php');
 require_once('../includes/DB.php');
+require_once('../includes/functions.php');
 $db = new DB(HOST,USERNAME,PASSWD,DBNAME,PORT,SOCKET);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -109,13 +110,13 @@ switch ($_POST['option']) {
 					$errorLoadImg=null;
 					if (isset($_FILES['evidence'])) {
 						$pathLocation = '';
-						switch ($data['id_location']) {
-							case 1:
-								$pathLocation = 'tlaquiltenango';
-							break;
-							default:
-								$pathLocation = 'zacatepec';
-							break;
+						$getSelectCatalog = getCatLocationById($data['id_location']);
+						// Buscar el short_name según el id_location
+						foreach ($getSelectCatalog as $location) {
+							if ($location['id_location'] == $data['id_location']) {
+								$pathLocation = strtolower(trim($location['location_desc']));
+								break;
+							}
 						}
 
 						$file = $_FILES['evidence'];
@@ -398,13 +399,14 @@ switch ($_POST['option']) {
 						$data['d_date']     = date("Y-m-d H:i:s");
 						$data['d_user_id']  = $_SESSION["uId"];
 						if (!empty($_POST['imgEvidence'])) {
-							switch ($id_location) {
-								case 1:
-									$pathLocation = 'tlaquiltenango';
-								break;
-								default:
-									$pathLocation = 'zacatepec';
-								break;
+							$getSelectCatalog = getCatLocationById($id_location);
+							$pathLocation = '';
+							// Buscar el short_name según el id_location
+							foreach ($getSelectCatalog as $location) {
+								if ($location['id_location'] == $id_location) {
+									$pathLocation = strtolower(trim($location['location_desc']));
+									break;
+								}
 							}
 							$imageData = $_POST['imgEvidence'];
 							$imageData = str_replace('data:image/png;base64,', '', $imageData);
@@ -1006,13 +1008,13 @@ async function sendMessageWhats(client, chatId, fullMessage, iconBot) {
 				$pathLocation = null;
 				$nameFile     = null;
 				$filePath     = null;
-				switch ($id_location) {
-					case 1:
-						$pathLocation = 'tlaquiltenango';
-					break;
-					default:
-						$pathLocation = 'zacatepec';
-					break;
+				$getSelectCatalog = getCatLocationById($id_location);
+				// Buscar el short_name según el id_location
+				foreach ($getSelectCatalog as $location) {
+					if ($location['id_location'] == $id_location) {
+						$pathLocation = strtolower(trim($location['location_desc']));
+						break;
+					}
 				}
 				if (!empty($_POST['imgEvidence'])) {
 					$imageData = $_POST['imgEvidence'];
@@ -1195,8 +1197,16 @@ async function sendMessageWhats(client, chatId, fullMessage, iconBot) {
 
 		$fechaAutoIni  = $_POST['fechaAuto'];
 		$fechaAutoFin      = explode(" ", $fechaAutoIni)[0];
-		$typeLocation ='tlaqui';
-		if($id_location==2){$typeLocation='zaca';}
+		
+		$getSelectCatalog = getCatLocationById($id_location);
+		$typeLocation = '';
+		// Buscar el short_name según el id_location
+		foreach ($getSelectCatalog as $location) {
+			if ($location['id_location'] == $id_location) {
+				$typeLocation = strtolower(trim($location['desc_short']));
+				break;
+			}
+		}
 
 		$tat  = $_POST['textAreatracking'];
 		$lineasTat = explode("\n", $tat);
@@ -1496,8 +1506,49 @@ async function sendMessageWhats(client, chatId, fullMessage, iconBot) {
 			];
 		$vGuia       = $_POST['vGuia'];
 		$id_location = $_POST['id_location'];
+		
+				
+		// Validar registros pendientes de días anteriores
+		/*$sqlOldRecords = "SELECT COUNT(*) AS total
+		FROM package_tmp
+		WHERE id_location IN(".$id_location.")
+		AND DATE(c_date) < CURDATE()";
+
+		$oldRecords = $db->select($sqlOldRecords);
+
+		if($oldRecords[0]['total'] > 0){
+			$result = [
+				'success'  => 'false',
+				'dataJson' => [],
+				'message'  => 'Pending package to clean'
+			];
+
+			echo json_encode($result);
+			exit;
+		}*/
+		
 		$existTmpRecord = validatorGuide($vGuia,'package_tmp',$id_location);
 		if(count($existTmpRecord)==1){//move records
+
+			$existRecord = validatorGuide($vGuia,'package',$id_location);
+			if(count($existRecord)>=1){
+				$id_package = $existRecord[0]['id_package'];
+				$currentStatus = getCurrentStatus($id_package);
+				saveLog($id_package,$currentStatus,'Rotulado/Verificado por: '.$_SESSION["uName"],true);
+
+				$data['v_date']    = date("Y-m-d H:i:s");
+				$data['v_user_id'] = $_SESSION["uId"];
+
+				$dataJson = $db->update('package',$data," `id_package` = $id_package");
+				$result = [
+					'success'  => 'true',
+					'dataJson' => $existRecord[0],
+					'message'  => ''
+				];
+				echo json_encode($result);
+				return;
+			}
+		
 			$slt = "SELECT 
 			id_location, id_contact, c_user_id, tracking, folio,
 			n_date, n_user_id, d_date, d_user_id, id_status, note, marker,
@@ -1585,8 +1636,15 @@ async function sendMessageWhats(client, chatId, fullMessage, iconBot) {
 				$labelParcel = "todas";
 				break;
 		}
-		$typeLocation ='tlaqui';
-		if($id_location==2){$typeLocation='zaca';}
+		$getSelectCatalog = getCatLocationById($id_location);
+		$typeLocation = '';
+		// Buscar el short_name según el id_location
+		foreach ($getSelectCatalog as $location) {
+			if ($location['id_location'] == $id_location) {
+				$typeLocation = strtolower(trim($location['desc_short']));
+				break;
+			}
+		}
 
 		$result = [
 			'success'   => false,
@@ -1965,4 +2023,30 @@ function saveLogByTracking($tracking,$id_status,$desc_mov,$flag){
 	$records           = $db->select($sqlGetIdPackage);
 	$id_package = $records[0]['id_package'];
 	saveLog($id_package,$id_status,$desc_mov,$flag);
+}
+
+function verifyExistingPackage($id_package, $existRecord, $db){
+    $currentStatus = getCurrentStatus($id_package);
+
+    saveLog(
+        $id_package,
+        $currentStatus,
+        'Rotulado/Verificado por: '.$_SESSION["uName"],
+        true
+    );
+
+    $data['v_date']    = date("Y-m-d H:i:s");
+    $data['v_user_id'] = $_SESSION["uId"];
+
+    $db->update(
+        'package',
+        $data,
+        "`id_package` = $id_package"
+    );
+
+    return [
+        'success'  => 'true',
+        'dataJson' => $existRecord[0],
+        'message'  => ''
+    ];
 }

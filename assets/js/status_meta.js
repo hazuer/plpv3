@@ -40,11 +40,11 @@ $(document).ready(function() {
 			{title: `Télefono`,        name:`phone`,    data:`phone`},   //1
 			{title: `Fecha Notificación`,       name:`n_date`,      data:`n_date`},     //2
 			{title: `Destinatario`,  contact_name:`fecha_registro`,   contact_name:`fecha_registro`},  //3
-			{title: `Ultimo Estatus`,         name:`statusName`,   data:`statusName`},  //4
-			{title: `Fecha Estatus`,            name:`statusDate`,            data:`statusDate`},
+			{title: `Estatus y Fecha`,         name:`statusName`,   data:`statusName`},  //4
+			// {title: `Fecha Estatus`,            name:`statusDate`,            data:`statusDate`},
 			{title: `Wamid`,             name:`message_id`,             data:`message_id`}            //5
 		],
-        'order': [[5, 'desc']]
+        'order': [[2, 'desc']]
 	});
 
 	//funcion para borrar campo de busqueda

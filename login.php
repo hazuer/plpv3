@@ -370,6 +370,7 @@ if(isset($_SESSION["uActive"])){
                      <p>Ingresa tus credenciales para acceder al sistema</p>
                  </div>
                  <form class="modern-form" onsubmit="return false;">
+                    <input type="hidden" name="device_id" id="device_id">
                      <div class="input-group input-user">
                          <label for="username">Usuario</label>
                          <input type="text" autofocus name="username" id="username" placeholder="Ingresa tu usuario" autocomplete="off" />
@@ -384,6 +385,20 @@ if(isset($_SESSION["uActive"])){
          </div>
       </div>
       <script>
+        (function () {
+            let deviceId = localStorage.getItem('device_id');
+            if (!deviceId) {
+                deviceId = crypto.randomUUID();
+                localStorage.setItem('device_id', deviceId);
+            }
+            document.cookie =
+                "device_id=" + deviceId +
+                ";path=/;max-age=31536000";
+            const input = document.getElementById('device_id');
+            if (input) {
+                input.value = deviceId;
+            }
+        })();
          document.addEventListener('DOMContentLoaded', function() {
              const bgs = document.querySelectorAll('.login-hero-bg');
              if (bgs.length > 0) {

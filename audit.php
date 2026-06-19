@@ -32,7 +32,8 @@ $rowEmpty  = ["id_package"    => "0" ,
 	"tipo_modo"     => "" ,
 	"v_date"        => "" ,
 	"user_rotulo"   => "",
-	"address"       => ""
+	"address"       => "",
+	"cp"       => "",
 ];
 
 foreach ($lineasTat as $linea) {
@@ -86,10 +87,14 @@ foreach ($lineasTat as $linea) {
 			CASE
 				p.id_type_mode WHEN 1 THEN 'Manual'
 				WHEN 2 THEN 'Automático'
+				WHEN 3 THEN 'OCR'
+				ELSE 'NA'
 			END AS tipo_modo,
 			p.v_date,
 			uv.user user_rotulo,
-			p.address 
+			p.address,
+			p.cp,
+			p.id_location 
 		FROM
 			package p
 		LEFT JOIN cat_contact cc ON cc.id_contact = p.id_contact
@@ -203,6 +208,8 @@ foreach ($lineasTat as $linea) {
 												<th>v_date</th>
 												<th>user_rotulo</th>
 												<th>address</th>
+												<th>cp</th>
+												<th>id_location</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -245,6 +252,8 @@ foreach ($lineasTat as $linea) {
 											<td><?php echo $d['v_date']; ?></td>
 											<td><?php echo $d['user_rotulo']; ?></td>
 											<td><?php echo $d['address']; ?></td>
+											<td><?php echo $d['cp']; ?></td>
+											<td><?php echo $d['id_location']; ?></td>
 											</tr>
 											<?php endforeach; ?>
 										</tbody>

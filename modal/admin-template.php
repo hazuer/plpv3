@@ -16,6 +16,17 @@
 
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="mAdtParcel"><b>Paquetería:</b></label>
+                            <select name="mAdtParcel" id="mAdtParcel" class="form-control">
+                                <option value="99">TODAS</option>
+                                <option value="1">J&T</option>
+                                <option value="2">IMILE</option>
+                                <option value="3">CNMEX</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12">

@@ -87,10 +87,13 @@ cct.contact_type,
 CASE p.id_type_mode
     WHEN 1 THEN 'Manual'
     WHEN 2 THEN 'Automático'
+	WHEN 3 THEN 'OCR'
 END AS tipo_modo,
 p.v_date,
 uv.user user_rotulo,
-p.address 
+p.address,
+p.cp,
+p.id_location 
 FROM package p 
 LEFT JOIN cat_contact cc ON cc.id_contact=p.id_contact 
 LEFT JOIN cat_status cs ON cs.id_status=p.id_status 
@@ -265,6 +268,8 @@ $packages = $db->select($sql);
 												<th>v_date</th>
 												<th>user_rotulo</th>
 												<th>address</th>
+												<th>cp</th>
+												<th>id_location</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -307,11 +312,13 @@ $packages = $db->select($sql);
 												<td><?php echo $d['v_date']; ?></td>
 												<td><?php echo $d['user_rotulo']; ?></td>
 												<td><?php echo $d['address']; ?></td>
+												<td><?php echo $d['cp']; ?></td>
+												<td><?php echo $d['id_location']; ?></td>
 												</tr>
 											<?php endforeach; ?>
 										</tbody>
 									</table>
-									
+									<div class="row margin_bottom_30">
                                  </div>
                               </div>
                            </div>
@@ -327,6 +334,6 @@ $packages = $db->select($sql);
 		include('modal/logger.php');
 		include('modal/evidence.php');
       	require_once('footer.php');
-      ?>
+      ?> 
    </body>
 </html>

@@ -9,6 +9,7 @@
             </div>
             <div class="modal-body">
                 <div class="row">
+                        <!-- <input type="text" id="tophone" value="" readonly> -->
                         <input type="hidden" id="tokenWaba" value="<?php echo $infoLocation[0]['token']?>" readonly>
                         <input type="hidden" id="phone_waba" value="<?php echo $infoLocation[0]['phone_waba']?>" readonly>
                         <input type="hidden" id="phone_number_id" value="<?php echo $infoLocation[0]['phone_number_id']?>" readonly>
@@ -27,6 +28,21 @@
                         </div>
                     </div>
                 </div>
+                <div id="preview-container"
+                    style="display:none;margin:10px 0;">
+                    <img id="preview-image"
+                        src=""
+                        style="max-width:200px;
+                                max-height:200px;
+                                border-radius:8px;
+                                border:1px solid #ddd;">
+                    <br>
+                    <button type="button"
+                            id="remove-preview"
+                            class="btn btn-sm btn-danger mt-2">
+                        Quitar
+                    </button>
+                </div>
                 
             </div>
             <div class="modal-footer">
@@ -34,7 +50,40 @@
                 <button id="btn-send" type="button" class="btn btn-success" title="Enviar"><i class="fa fa-paper-plane"></i></button>
                 <button id="btn-read" type="button" class="btn btn-success" title="Leído"><i class="fa fa-check-circle"></i></button>
                 <button id="info-guias" type="button" class="btn btn-success" title="Información"><i class="fa fa-cube"></i></button>
+                <button id="btn-attach" type="button" class="btn btn-success" title="Adjuntar"><i class="fa fa-paperclip"></i></button>
+                <input type="file"
+                id="attach-image-file"
+                accept="image/*"
+                style="display:none;">
+                <div id="attach-menu"
+                    style="display:none;
+                            position:absolute;
+                            bottom:60px;
+                            left:10px;
+                            background:#fff;
+                            border:1px solid #ddd;
+                            border-radius:8px;
+                            padding:8px;
+                            z-index:9999;
+                            box-shadow:0 2px 10px rgba(0,0,0,.2);">
+                    <button type="button"
+                            id="attach-image"
+                            class="btn btn-sm btn-light btn-block">
+                        🖼 Imagen
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm btn-light btn-block"
+                            disabled>
+                        📄 Documento
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm btn-light btn-block"
+                            disabled>
+                        🎵 Audio
+                    </button>
+                </div>
                 <button id="btn-next-chat" type="button" class="btn btn-info" title="Leer mensaje siguiente"><i class="fa fa-chevron-circle-right"></i></button>
+                <!-- <button id="btn-close-chatw" type="button" class="btn btn-danger" title="Cerrar" data-dismiss="modal">Cerrar</button> -->
             </div>
         </div>
     </div>

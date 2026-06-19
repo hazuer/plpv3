@@ -2,7 +2,8 @@
 // Lista de dominios permitidos
 $allowed_origins = [
     'https://jmx.jtjms-mx.com',
-    'https://ds.imile.com'
+    'https://ds.imile.com',
+    'https://lds.na.cainiao.com'
 ];
 
 // Detecta el origen de la petición

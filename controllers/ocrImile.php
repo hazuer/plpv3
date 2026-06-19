@@ -1,78 +1,8 @@
 <?php
 // use Zxing\QrReader;
 
-
 class OcrImile {
 
-/*
-    public function getTrackingImile($imagePath, $fullText = ''){
-        // 1. Intentar QR
-        $tracking = $this->getTrackingImileFromQR($imagePath);
-        if (!empty($tracking)) {
-            writeLog('Tracking iMile obtenido desde QR: ' . $tracking);
-            return $tracking;
-        }
-//TODO:: read from barcode from o like HTML5 QR Code Scanner
-
-        writeLog('No se pudo leer QR, intentando OCR...');
-        // 2. Intentar OCR
-        $tracking = $this->getTrackingImileFromOCR($fullText);
-        if (!empty($tracking)) {
-            writeLog('Tracking iMile obtenido desde OCR: ' . $tracking);
-            return $tracking;
-        }
-        return null;
-    }
-
-    public function getTrackingImileFromQR($imagePath){
-        try {
-            $qrcode = new QrReader($imagePath);
-            $textQR = trim((string)$qrcode->text());
-
-            if (empty($textQR)) {
-                return null;
-            }
-
-            writeLog('QR iMile detectado: ' . $textQR);
-
-            if (preg_match('/\b(IM\d{14}|\d{13,14})\b/i', $textQR, $match)) {
-                return strtoupper($match[1]);
-            }
-
-            return null;
-
-        } catch (Exception $e) {
-            writeLog('Error leyendo QR iMile: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function getTrackingImileFromOCR($fullText){
-        $text = strtoupper($fullText);
-
-        // Prioridad 1: códigos IM
-        if (preg_match('/\b(IM\d{14})\b/i', $text, $match)) {
-            return strtoupper($match[1]);
-        }
-
-        preg_match_all('/\b(\d{13,14})\b/', $text, $matches);
-
-        if (empty($matches[1])) {
-            return null;
-        }
-
-        foreach ($matches[1] as $candidate) {
-
-            // Prefijos observados en las guías iMile
-            if (
-                preg_match('/^(605|604|487|488)/', $candidate)
-            ) {
-                return $candidate;
-            }
-        }
-        return $matches[1][0];
-    }
-*/
     public function getPhoneImile($fullText){
         $lines = array_values(
             array_filter(
@@ -146,14 +76,8 @@ class OcrImile {
 
             foreach ($matches[0] as $candidate) {
                 $phone = preg_replace('/\D/', '', $candidate);
-                // 52 + 10 dígitos
-                if (strlen($phone) == 12 && substr($phone, 0, 2) == '52') {
-                    return substr($phone, 2);
-                }
-                // 10 dígitos
-                if (strlen($phone) == 10) {
-                    return $phone;
-                }
+                // Siempre tomar los últimos 10 dígitos
+                return substr($phone, -10);
             }
         }
         return null;
@@ -182,6 +106,10 @@ class OcrImile {
                     }
                     // Ignorar CVJS34
                     if (stripos($candidate, 'CVJS34') !== false) {
+                        continue;
+                    }
+                    // Ignorar CVJ008
+                    if (stripos($candidate, 'CVJ008') !== false) {
                         continue;
                     }
                     return $candidate;

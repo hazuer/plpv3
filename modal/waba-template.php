@@ -129,6 +129,11 @@
                                                 <i class="fa fa-cubes"></i> folios
                                             </span>
                                         </div>
+                                        <div class="col-md-2">
+                                            <span draggable="true" class="badge badge-pill badge-info" style="cursor: pointer;" data-toggle="tooltip" data-placement="top" valor="address_db" title="Asignar dirección del destinatario desde base de datos">
+                                                <i class="fa fa-map-pin"></i> d. entrega
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <hr>

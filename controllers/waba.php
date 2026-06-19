@@ -15,6 +15,79 @@ $db = new DB(HOST,USERNAME,PASSWD,DBNAME,PORT,SOCKET);
 
 header('Content-Type: application/json; charset=utf-8');
 
+function uploadMediaMeta($phoneNumberId, $tokenWaba, $fullFilePath){
+    $url = "https://graph.facebook.com/v23.0/".$phoneNumberId."/media";
+    $mimeType = mime_content_type($fullFilePath);
+	$cFile = new CURLFile(
+		$fullFilePath,
+		$mimeType,
+		basename($fullFilePath)
+	);
+
+    $postFields = [
+        'messaging_product' => 'whatsapp',
+        'file' => $cFile
+    ];
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer $tokenWaba"
+        ],
+        CURLOPT_POSTFIELDS => $postFields
+    ]);
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    if ($error) {
+        return [
+            'success' => false,
+            'message' => $error
+        ];
+    }
+    return json_decode($response, true);
+}
+
+function sendImageMeta(
+    $phoneNumberId,
+    $tokenWaba,
+    $toPhone,
+    $mediaId
+){
+    $url = "https://graph.facebook.com/v23.0/".$phoneNumberId."/messages";
+    $payload = [
+        "messaging_product" => "whatsapp",
+        "to" => $toPhone,
+        "type" => "image",
+        "image" => [
+            "id" => $mediaId
+        ]
+    ];
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Bearer $tokenWaba",
+        "Content-Type: application/json"
+    ]);
+    curl_setopt(
+        $ch,
+        CURLOPT_POSTFIELDS,
+        json_encode($payload)
+    );
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    if ($error) {
+        return [
+            'success' => false,
+            'message' => $error
+        ];
+    }
+    return json_decode($response, true);
+}
 
 switch ($_POST['option']) {
 	case 'sendTemplate':
@@ -54,8 +127,6 @@ switch ($_POST['option']) {
 			GROUP BY cc.phone
 		";
 		$rst = $db->select($sql);
-		#var_dump($rst);
-		#die();
 
 		if(count($rst)>0){
 			$ids             = $rst[0] ? $rst[0]['ids'] : 0;
@@ -79,15 +150,46 @@ switch ($_POST['option']) {
 			$totalRegistros = count($idsArray);
 			$tguias         = "Total:".$totalRegistros." (Folio)-Guía: ".$folioGuias;
 
+			// ==========================================
+			// VALIDAR SI LA PLANTILLA USA address_db
+			// ==========================================
+			$addressDB = "";
+			$useAddressDB = in_array("address_db", $camposPlantilla);
+			if($useAddressDB){
+				$sqlAddress = "SELECT address 
+				FROM package 
+				WHERE id_package IN ($ids) 
+				AND address IS NOT NULL 
+				AND TRIM(address) <> '' 
+				ORDER BY CHAR_LENGTH(address) DESC 
+				LIMIT 1";
+				$rstAddress = $db->select($sqlAddress);
+				if(count($rstAddress) > 0){
+					$addressDB = trim($rstAddress[0]['address']);
+				}
+				// si la plantilla requiere address_db y no existe
+				// NO enviar mensaje
+				if(empty($addressDB)){
+					echo json_encode([
+						'success' => 'false',
+						'message' => 'No se encontró domicilio válido, mensaje no enviado'
+					]);
+					exit;
+				}
+			}
+			//----------------------------------
+
 			$fullTemplate = str_replace("usuario_db", $customNameUser, $txtTemplate);
 			$fullTemplate = str_replace("location_db", $locationLnk, $fullTemplate);
 			$fullTemplate = str_replace("folios_db", $tguias, $fullTemplate);
+			$fullTemplate = str_replace("address_db", $addressDB, $fullTemplate);
 
 			// valores de BD
 			$bdValues = [
 				"usuario_db"  => $customNameUser,
 				// "location_db" => $locationLnk,
-				"folios_db"   => $tguias
+				"folios_db"   => $tguias,
+				"address_db" => $addressDB
 			];
 
 			$componentParams = [];
@@ -210,7 +312,7 @@ switch ($_POST['option']) {
 			exit;
 		}
 
-		$sql="SELECT 
+		/*$sql="SELECT 
 			id_log,
 			datelog,
 			sender_phone,
@@ -233,7 +335,44 @@ switch ($_POST['option']) {
 		GROUP BY message_id 
 		ORDER BY id_log DESC 
 		LIMIT 50
-		";
+		";*/
+		$sql="SELECT 
+	id_log,
+	datelog,
+	sender_phone,
+	message_text,
+	source,
+	message_id,
+	CASE 
+		WHEN sender_phone = '".$wabaPhone."' THEN 'outgoing' 
+		ELSE 'incoming' 
+	END AS message_type,
+	CASE
+		WHEN source IN ('template', 'waba_response_to_user','bot')
+		THEN (SELECT user FROM users WHERE id = sent_by LIMIT 1)
+		ELSE ''
+	END AS who_sent 
+FROM waba_callbacks 
+WHERE 
+(
+	sender_phone = '".$wabaPhone."'
+	AND raw_json LIKE '%".$phone."%'
+) 
+OR 
+(
+	sender_phone = '".$phone."'
+	AND
+	JSON_UNQUOTE(
+		JSON_EXTRACT(
+			raw_json,
+			'$.entry[0].changes[0].value.metadata.display_phone_number'
+		) 
+	) = '".$wabaPhone."' 
+) 
+GROUP BY message_id 
+ORDER BY id_log DESC 
+LIMIT 50
+";
 		$mensajes = $db->select($sql);
 
 		echo json_encode($mensajes);
@@ -327,6 +466,100 @@ switch ($_POST['option']) {
 
 	break;
 
+	case 'uploadImage':
+		if (!isset($_FILES['image'])) {
+			echo json_encode([
+				'success' => false,
+				'message' => 'No se recibió imagen'
+			]);
+			exit;
+		}
+		$uploadDir = '../uploads/waba/images/';
+		if (!is_dir($uploadDir)) {
+			mkdir($uploadDir, 0777, true);
+		}
+		$extension = pathinfo(
+			$_FILES['image']['name'],
+			PATHINFO_EXTENSION
+		);
+		$fileName = uniqid('img_') . '.' . $extension;
+		$targetFile = $uploadDir . $fileName;
+		if (move_uploaded_file(
+			$_FILES['image']['tmp_name'],
+			$targetFile
+		)) {
+			echo json_encode([
+				'success' => true,
+				'file' => 'uploads/waba/images/' . $fileName
+			]);
+		} else {
+			echo json_encode([
+				'success' => false,
+				'message' => 'No se pudo guardar'
+			]);
+		}
+	break;
+
+	case 'uploadImageMeta':
+		$phoneNumberId = $_POST['phoneNumberId'];
+		$tokenWaba     = $_POST['tokenWaba'];
+		$file          = $_POST['file'];
+		$fullFilePath = '../'.$file;
+		$response = uploadMediaMeta(
+			$phoneNumberId,
+			$tokenWaba,
+			$fullFilePath
+		);
+		echo json_encode($response);
+		exit;
+	break;
+
+	case 'sendImageMeta':
+		$phoneNumberId = $_POST['phoneNumberId'];
+		$tokenWaba     = $_POST['tokenWaba'];
+		$toPhone       = $_POST['toPhone'];
+		$mediaId       = $_POST['mediaId'];
+		$response = sendImageMeta(
+			$phoneNumberId,
+			$tokenWaba,
+			$toPhone,
+			$mediaId
+		);
+		echo json_encode($response);
+		exit;
+	break;
+
+	case 'saveImageMessage':
+		$id_location = intval($_POST['id_location']);
+		$messageId   = $_POST['messageId'];
+		$imagePath   = $_POST['imagePath'];
+		$wabaPhone   = $_POST['phoneWaba'];
+		$date    = date("Y-m-d H:i:s");
+		$read_by = intval($_SESSION['uId']);
+		$sent_by = intval($_SESSION['uId']);
+		$sendResponse = json_decode(
+			$_POST['sendResponse'],
+			true
+		);
+
+		$rawJson = json_encode([
+			'image_url' => $imagePath,
+			'messaging_product' => $sendResponse['messaging_product'] ?? '',
+			'contacts' => $sendResponse['contacts'] ?? [],
+			'messages' => $sendResponse['messages'] ?? []
+		]);
+		$messageText = "[IMAGE SAVED] ".$imagePath;
+
+		$sql = "INSERT INTO waba_callbacks ( datelog, sender_phone, message_id, message_text, raw_json, is_read, read_at, read_by, source, id_location, sent_by ) 
+			VALUES 
+			( '$date', '$wabaPhone', '$messageId',  '".addslashes($messageText)."', '".addslashes($rawJson)."', 1, '$date', $read_by, 'waba_response_to_user', $id_location, $sent_by )";
+		$ok = $db->sqlPure($sql,false);
+		echo json_encode([
+			'success' => $ok
+		]);
+		exit;
+	break;
+
 	case 'saveTempMeta':
 		$result   = [];
 		$success  = 'false';
@@ -383,12 +616,14 @@ switch ($_POST['option']) {
 			cp.parcel,
 			p.tracking,
 			p.folio,
-			s.status_desc
+			s.status_desc,
+			l.location_desc 
 		FROM
 			package p 
 			INNER JOIN cat_contact cc ON cc.id_contact = p.id_contact 
 			INNER JOIN cat_parcel cp ON cp.id_cat_parcel = p.id_cat_parcel 
 			INNER JOIN cat_status s ON s.id_status = p.id_status 
+			INNER JOIN cat_location l ON l.id_location = p.id_location 
 		WHERE 
 			cc.phone IN('".$phone10."') 
 			AND p.id_status NOT IN(3,4,8)";

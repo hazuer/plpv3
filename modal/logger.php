@@ -1,3 +1,6 @@
+<?php
+$locations = getSelectCatLocationAll();
+?>
 <div class="modal fade" id="modal-logger" tabindex="-1" role="dialog" aria-labelledby="modal-logger-title" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -33,7 +36,16 @@
                 <input type="hidden" name="newLocation" id="newLocation" value="" >
             </div>
             <div class="modal-footer">
-                <button id="btn-change-location" type="button" class="btn btn-success" title="Cambiar ubicación" data-dismiss="modal"></button>
+                <div id="container-change-location" style="display:none; min-width:250px;">
+                    <select id="select-location" class="form-control">
+                        <option value="">Mover a...</option>
+                        <?php foreach ($locations as $location) { ?>
+                            <option value="<?= $location['id_location'] ?>">
+                                <?= $location['location_desc'] ?>
+                            </option>
+                        <?php } ?>
+                    </select>
+                </div>
                 <button id="btn-revert-status" type="button" class="btn btn-success" title="Cambiar a Contactado" data-dismiss="modal">Cambiar a Contactado</button>
                 <button id="close-btn-logger" type="button" class="btn btn-danger" title="Cerrar" data-dismiss="modal">Cerrar</button>
             </div>

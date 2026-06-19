@@ -50,6 +50,7 @@ $(document).ready(function() {
 	});
 
     let currentPhone = null;
+    let selectedImageFile = null;
     let indexes = table.rows({ search: 'applied', order: 'applied' }).indexes().toArray();
     let chatInterval = null; // 👉 Variable global para controlar el intervalo
 
@@ -69,7 +70,7 @@ $(document).ready(function() {
 
     // 👉 Función que carga los mensajes
     function cargarMensajes(tophone, phoneWaba) {
-        console.log('tophone',tophone);
+        //console.log('tophone',tophone);
         let id_location = idLocationSelected.val();
         // console.log(tophone, phoneWaba);
         $.ajax({
@@ -245,6 +246,113 @@ $('#btn-send').on('click', function() {
 });
 
 function sendWhats(){
+    if(selectedImageFile){
+        let formData = new FormData();
+        formData.append('image', selectedImageFile);
+        formData.append('option', 'uploadImage');
+        $.ajax({
+            url: `${base_url}/${baseController}`,
+            type: 'POST',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function(response){
+                console.log('UPLOAD RESPONSE', response);
+                $.ajax({
+                    url: `${base_url}/${baseController}`,
+                    type: 'POST',
+                    data: {
+                        option: 'uploadImageMeta',
+                        phoneNumberId: $("#phone_number_id").val(),
+                        tokenWaba: $("#tokenWaba").val(),
+                        file: response.file
+                    },
+                    success: function(metaResponse){
+                        console.log('META RESPONSE', metaResponse);
+                        if(metaResponse.id){
+                            $.ajax({
+                                url: `${base_url}/${baseController}`,
+                                type: 'POST',
+                                data: {
+                                    option: 'sendImageMeta',
+                                    phoneNumberId: $("#phone_number_id").val(),
+                                    tokenWaba: $("#tokenWaba").val(),
+                                    toPhone: currentPhone,
+                                    mediaId: metaResponse.id
+                                },
+                                success: function(sendResponse){
+                                    console.log(
+                                        'SEND IMAGE RESPONSE',
+                                        sendResponse
+                                    );
+                                    if(
+                                        sendResponse.messages &&
+                                        sendResponse.messages[0] &&
+                                        sendResponse.messages[0].id
+                                    ){
+                                        let wamid = sendResponse.messages[0].id;
+                                        $.ajax({
+                                            url: `${base_url}/${baseController}`,
+                                            type: 'POST',
+                                            data: {
+                                                option: 'saveImageMessage',
+                                                id_location: idLocationSelected.val(),
+                                                phoneWaba: $("#phone_waba").val(),
+                                                messageId: wamid,
+                                                imagePath: response.file,
+                                                toPhone: currentPhone,
+                                                sendResponse: JSON.stringify(sendResponse)
+                                            },
+                                            success: function(saveResponse){
+                                                console.log(
+                                                    'SAVE IMAGE RESPONSE',
+                                                    saveResponse
+                                                );
+                                            },
+                                            error: function(err){
+                                                console.error(err);
+                                            }
+                                        });
+                                    }
+                                },
+                                error: function(err){
+                                    console.error(err);
+                                }
+                            });
+                        }
+                    },
+                    error: function(err){
+                        console.error(err);
+                    }
+                });
+                if(response.success){
+                    let html = `
+                        <div class="chat-bubble sent">
+                            <a href="${base_url}/${response.file}" target="_blank">
+                                <img src="${base_url}/${response.file}"
+                                    class="chat-media"
+                                    style="max-width:200px;border-radius:8px;">
+                            </a>
+                            <span class="time">Vista previa local</span>
+                        </div>
+                    `;
+                    $('#chat-container').append(html);
+                    // limpiar selección actual
+                    selectedImageFile = null;
+                    $('#attach-image-file').val('');
+                    $('#preview-image').attr('src', '');
+                    $('#preview-container').hide();
+                    scrollTopChat();
+                }
+            },
+            error: function(xhr){
+                console.error(xhr);
+            }
+        });
+        //return;
+    }
+    //return;
     let id_location = idLocationSelected.val();
     let tophone = currentPhone;
     let tokenWaba = $("#tokenWaba").val();
@@ -334,7 +442,7 @@ function showDetailNumbers(texto){
             swal("Atención!", "* Campos requeridos", "error");
 			return;
         }
-        console.log('continue');
+        //console.log('continue');
         let formData = new FormData();
 		formData.append('mAdtName', mAdtName);
         formData.append('mAdtParcel', mAdtParcel);
@@ -438,7 +546,7 @@ $('#mBEstatus').on('change', function () {
     let mBEstatus        = $('#mBEstatus').val();
     
     if(mTMode === '2') { // Automático
-        console.log(mTMode,mbIdCatParcel,mBEstatus);
+        //console.log(mTMode,mbIdCatParcel,mBEstatus);
         let formData =  new FormData();
         formData.append('id_location', idLocationSelected.val());
         formData.append('mbIdCatParcel', mbIdCatParcel);
@@ -829,14 +937,14 @@ document.addEventListener("drop", function(e) {
 					$('.swal-button-container').hide();
 			},
             success: function(response) {
-                console.log(response);
+                //console.log(response);
                 swal.close();
                 if (response.success) {
                     let html = '';
                     response.data.forEach(function(item) {
                     html += `
                         <div style="margin-bottom:8px; font-size:13px">
-                            <b>${item.parcel}</b> — ${item.status_desc}<br>
+                            <b>${item.location_desc}:${item.parcel}</b> — ${item.status_desc}<br>
                             ${item.folio} | ${item.tracking}
                         </div>`;
                     });
@@ -869,7 +977,7 @@ document.addEventListener("drop", function(e) {
     });
 
     function deleteTemplateWaba(id_template, name) {
-        console.log('id_template',id_template,name);
+        //console.log('id_template',id_template,name);
         swal({
                 title: `Eliminar plantilla`,
                 text: `Desea eliminar la plantilla ${name}?`,
@@ -878,7 +986,7 @@ document.addEventListener("drop", function(e) {
                 dangerMode: false,
             }).then((weContinue) => {
             if (weContinue) {
-                    console.log('continue delete');
+                    //console.log('continue delete');
                 let formData =  new FormData();
                     formData.append('id_template', id_template);
                     formData.append('option', 'deleteTemplateWaba');
@@ -917,4 +1025,33 @@ document.addEventListener("drop", function(e) {
         });
     }
 
+    $('#btn-attach').on('click', function () {
+        $('#attach-menu').toggle();
+    });
+
+    $('#attach-image').on('click', function () {
+        $('#attach-menu').hide();
+        $('#attach-image-file').click();
+    });
+
+    $('#attach-image-file').on('change', function () {
+        let file = this.files[0];
+        if (!file) {
+            return;
+        }
+        selectedImageFile = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#preview-image').attr('src', e.target.result);
+            $('#preview-container').show();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $('#remove-preview').on('click', function () {
+        selectedImageFile = null;
+        $('#attach-image-file').val('');
+        $('#preview-image').attr('src', '');
+        $('#preview-container').hide();
+    });
 });

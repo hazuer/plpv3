@@ -419,7 +419,7 @@ $(document).ready(function () {
                 renderValidationStatus(response.ocrDb);
 
                 // AUTO REGISTRO
-                if(
+                /*if(
                     response.ocrDb &&
                     response.ocrDb.status === 'auto_register'
                 ){
@@ -441,7 +441,45 @@ $(document).ready(function () {
                         timer: 1500,
                         buttons: false
                     });
-                }
+                }*/
+               switch(response.ocrDb.status){
+                case 'auto_register':
+                      setTimeout(function(){
+                        //#########TRIGER AUTO SAVE#########
+                        $('#btn-save-ocr').trigger('click');
+                        //######### call to saveDataOcr()#########
+                    }, 400);
+                    $('#btn-save-ocr').hide();
+                    $('#btn-capture-ocr').hide();
+                break;
+                case 'suggest_name':
+                    $('#btn-save-ocr').show();
+                    swal({
+                        title: 'Variación detectada',
+                        text: 'Se encontró un contacto similar: ' + response.ocrDb.suggestedName,
+                        icon: 'warning',
+                        timer: 2500,
+                    });
+                break;
+                case 'new_variant':
+                    $('#btn-save-ocr').show();
+                    swal({
+                        title: 'Nombre diferente',
+                        text: 'El teléfono existe pero el nombre es distinto.',
+                        icon: 'warning',
+                        timer: 2500,
+                    });
+                break;
+                case 'new_contact':
+                    $('#btn-save-ocr').show();
+                    swal({
+                        title: 'Nuevo contacto',
+                        text: 'El teléfono no existe en la base de datos.',
+                        icon: 'info',
+                        timer: 2500,
+                    });
+                break;
+            }
             },error: function (xhr) {
                 swal.close();
                 console.error(xhr.responseText);

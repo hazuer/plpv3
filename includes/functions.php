@@ -45,5 +45,5 @@ function writeLog($message, $nameDir='logs',$nameFile = 'log') {
 function jsonResponse($data=[]) {
 	header('Content-Type: application/json');
 	echo json_encode($data);
-	exit;
+	die();
 }

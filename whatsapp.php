@@ -1,6 +1,6 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+//error_reporting(E_ALL);
+//ini_set('display_errors', '1');
 session_start();
 define( '_VALID_MOS', 1 );
 
@@ -84,7 +84,7 @@ $template = $db->select($sqlTemplates);
 
                                        <div class="col-md-2">
                                           <div class="form-group">
-                                             <label for=""><b></b></label>
+                                             <label><b></b></label>
                                              <input type="text" class="form-control" placeholder="Buscar chat por número" name="chPhone" id="chPhone" value="<?php echo $chPhone; ?>" autocomplete="off">
                                           </div>
                                        </div>

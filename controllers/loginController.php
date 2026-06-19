@@ -30,6 +30,64 @@ switch ($_REQUEST['option']) {
 				LIMIT 1";
 				$user = $db->select($sql);
 				if(isset($user[0]['id'])) {
+					// start user by device
+					$idUser = $user[0]['id'];
+					if($idUser != 4){
+						$deviceId = trim($_POST['device_id'] ?? '');
+
+						if(empty($deviceId)){
+							echo json_encode([
+								'success' => 'false',
+								'device'  => 'invalid'
+							]);
+							die();
+						}
+						$sql = "SELECT *
+								FROM user_devices
+								WHERE id_user = $idUser
+								AND device_id = '$deviceId'
+								LIMIT 1";
+						$device = $db->select($sql);
+						if(count($device) == 0){
+							$data = [];
+							$data['id_user']    = $idUser;
+							$data['device_id']  = $deviceId;
+							$data['status']     = 0;
+							$data['created_at'] = date('Y-m-d H:i:s');
+							$userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+							$browser = getBrowser($userAgent);
+							$os      = getOS($userAgent);
+
+							$data['browser'] = $browser;
+							$data['os']      = $os;
+							$db->insert('user_devices',$data);
+							echo json_encode([
+								'success' => 'false',
+								'device'  => 'pending'
+							]);
+							die();
+						}
+						if($device[0]['status'] == 0){
+							echo json_encode([
+								'success' => 'false',
+								'device'  => 'pending'
+							]);
+							die();
+						}
+						if($device[0]['status'] == 2){
+							echo json_encode([
+								'success' => 'false',
+								'device'  => 'blocked'
+							]);
+							die();
+						}
+											// actualizar último acceso
+						$upd = [];
+						$upd['last_access'] = date('Y-m-d H:i:s');
+						$db->update('user_devices',	$upd,"id = ".$device[0]['id']);
+					}
+					///end auth by user+device
 					$token = bin2hex(random_bytes(32)); // token único
 					$_SESSION["uId"]       = $user[0]['id'];
 					$_SESSION["uName"]     = $u;
@@ -86,6 +144,41 @@ switch ($_REQUEST['option']) {
 		header('Location: '.BASE_URL);
 		die();
 	break;
+}
+
+function getBrowser($ua){
+    if (strpos($ua, 'Edg') !== false) {
+        return 'Edge';
+    }
+    if (strpos($ua, 'Chrome') !== false) {
+        return 'Chrome';
+    }
+    if (strpos($ua, 'Firefox') !== false) {
+        return 'Firefox';
+    }
+    if (strpos($ua, 'Safari') !== false) {
+        return 'Safari';
+    }
+    return 'Desconocido';
+}
+
+function getOS($ua){
+    if (strpos($ua, 'Windows NT 10.0') !== false) {
+        return 'Windows 10/11';
+    }
+    if (strpos($ua, 'Android') !== false) {
+        return 'Android';
+    }
+    if (strpos($ua, 'iPhone') !== false) {
+        return 'iPhone';
+    }
+    if (strpos($ua, 'Mac OS X') !== false) {
+        return 'MacOS';
+    }
+    if (strpos($ua, 'Linux') !== false) {
+        return 'Linux';
+    }
+    return 'Desconocido';
 }
 
 ?>

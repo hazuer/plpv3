@@ -2,17 +2,10 @@
 
 class OcrJt {
 
-    /*public function getTrackingJt($fullText){
-        if (preg_match('/JMX\d{12}/i',$fullText,$match)) {
-            return strtoupper($match[0]);
-        }
-        return '';
-    }*/
-
     public function getPhoneJt($fullText){
         // NIVEL 1
-        if (preg_match('/(?:\/?Tel\s*:?\s*)(\d{10})/i',$fullText,$match)) {
-            return $match[1];
+        if (preg_match('/(?:\/?Tel\s*:?\s*)(\d{10,12})/i', $fullText, $match)) {
+            return substr($match[1], -10); // Toma últimos 10
         }
 
         // NIVEL 2

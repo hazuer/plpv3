@@ -1,8 +1,8 @@
 <?php
 session_start();
 define( '_VALID_MOS', 1 );
-#error_reporting(E_ALL);
-#ini_set('display_errors', '1');
+//error_reporting(E_ALL);
+//ini_set('display_errors', '1');
 
 require_once('includes/configuration.php');
 require_once('includes/DB.php');

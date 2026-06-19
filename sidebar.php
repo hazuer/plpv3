@@ -7,7 +7,7 @@ if($pagina=='dashboard'){
    $display='none';
 }
 
-$getSelectCatalog = getSelectCatLocation();
+$getSelectCatalog = getSelectCatLocationAll();
 $protocol  = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
 // Host
 $host = $_SERVER['HTTP_HOST'];
@@ -54,6 +54,12 @@ switch ($_SESSION["uId"]) {
          </li>
          <li>
             <a href="packages.php" class="onclikload"><i class="fa fa-cubes blue1_color"></i> <span>Paquetes</span></a>
+         </li>
+         <li>
+            <a href="m1.php"><i class="fa fa-map purple_color"></i> <span>CedisMap</span></a>
+         </li>
+         <li>
+            <a href="m2.php"><i class="fa fa-truck purple_color"></i> <span>OnRoute</span></a>
          </li>
          <li>
             <a href="whatsapp.php" class="onclikload"><i class="fa fa-whatsapp green_color"></i> <span>WhatsApp</span></a>

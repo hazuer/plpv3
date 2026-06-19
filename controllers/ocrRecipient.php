@@ -333,6 +333,7 @@ function saveDataOcr(){
             'cp'    => $postalCode
         ];
         $new_id_package = $db->insert('package',$data);
+        //TODO: saveLog($new_id_package,1,'Nuevo registro de paquete');
         if(
             !empty($evidencePath)
             &&

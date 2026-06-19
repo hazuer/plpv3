@@ -51,7 +51,10 @@ foreach($result as $row){
 	// Recorrer el array y contar los que comienzan con "JMX"
 	if (strpos($row['tracking'], 'JMX') === 0) {
 		$countJMX1++;
-	}else if(strpos($row['tracking'], 'CNMEX') === 0) {
+	}else if(
+		strpos($row['tracking'], 'CNMEX') === 0 ||
+		strpos($row['tracking'], 'YT') === 0
+	) {
 		$countCN1++;
 	} else {
 		$countImile1++;
@@ -150,7 +153,10 @@ $text_enable_bot = ($enable_bot==1) ? "Desactivar Bot":"Activar Bot";
 										foreach ($packages as $item) {
 											if (strpos($item['tracking'], 'JMX') === 0) {
 												$countJMX++;
-											} else if (strpos($item['tracking'], 'CNMEX') === 0) {
+											} else if (
+												strpos($item['tracking'], 'CNMEX') === 0 ||
+												strpos($item['tracking'], 'YT') === 0
+											) {
 												$countCN++;
 											} else {
 												$countImile++;

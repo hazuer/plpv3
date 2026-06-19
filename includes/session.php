@@ -1,7 +1,7 @@
 <?php
 defined('_VALID_MOS') or die('Restricted access');
-#error_reporting(E_ALL);
-#ini_set('display_errors', '1');
+//error_reporting(E_ALL);
+//ini_set('display_errors', '1');
 
 if(!isset($_SESSION["uActive"])){
 	// check if exist cookie
@@ -22,12 +22,13 @@ if(!isset($_SESSION["uActive"])){
 		die();
 	}
 }
+
 $sql     = "SELECT session_token FROM users WHERE id = ".$_SESSION["uId"];
 $dtstkn  = $db->select($sql);
 $tokenDB = $dtstkn[0]['session_token'];
 
 if (
-    ($_SESSION['uName'] ?? '') !== 'isidoroc' &&
+    !in_array(strtolower($_SESSION['uName'] ?? ''), ['isidoroc', 'lenninr']) &&
     (
         empty($_SESSION['session_token']) ||
         $_SESSION['session_token'] !== $tokenDB
@@ -60,6 +61,23 @@ $fullSessionLocation = getCatLocationById($_SESSION['uLocation']);
 $desc_loc = $fullSessionLocation[0]['location_desc'];
 
 
+/*$sql ="SELECT 
+    sender_phone,
+    MAX(datelog) AS last_date,
+    SUBSTRING_INDEX(
+        GROUP_CONCAT(message_text ORDER BY datelog DESC SEPARATOR '|'),
+        '|',
+        1
+    ) AS last_message 
+FROM 
+    waba_callbacks 
+WHERE 
+    is_read = 0 
+GROUP BY 
+    sender_phone 
+ORDER BY 
+    last_date DESC;";*/
+$wabaPhone = $fullSessionLocation[0]['phone_waba'];
 $sql ="SELECT 
     sender_phone,
     MAX(datelog) AS last_date,
@@ -72,6 +90,23 @@ FROM
     waba_callbacks 
 WHERE 
     is_read = 0 
+AND
+( 
+    ( 
+        sender_phone = '".$wabaPhone."' 
+    ) 
+    OR 
+    (
+        sender_phone != '".$wabaPhone."' 
+        AND
+        JSON_UNQUOTE(
+            JSON_EXTRACT(
+                raw_json,
+                '$.entry[0].changes[0].value.metadata.display_phone_number'
+            )
+        ) = '".$wabaPhone."'
+    )
+)
 GROUP BY 
     sender_phone 
 ORDER BY 
@@ -102,7 +137,8 @@ foreach ($chats as $chat) {
     $locId = $rstCheck[0]['id_location'] ?? 0;
 
     // Solo agregar si pertenece a la ubicación seleccionada
-    if ($locId == $idlx) {
+    //if ($locId == $idlx) {
+if ($locId == $idlx && !empty($contact_name)) {
 		$totalMensajeSinLeer++;
 
         // Formatear fecha
@@ -141,7 +177,7 @@ foreach ($chats as $chat) {
         c.contact_name 
         FROM cat_contact c 
         WHERE 1
-        AND c.id_location IN(1,2)
+        AND c.id_location IN($idlx)
         AND c.phone IN('$numero')
         AND c.id_contact_status IN (1)
         ORDER BY c.c_date DESC 
@@ -164,7 +200,7 @@ foreach ($chats as $chat) {
             // Concatenar HTML
             $htmlChat .= "<tr style=\"background-color:#FFB347;\">
                 <td>{$chat['sender_phone']}</td>
-                <td>Otro</td>
+                <td>No registrado</td>
                 <td>{$lastMessage}</td>
                 <td>{$last_date}</td>
                 <td style='text-align: center;'>

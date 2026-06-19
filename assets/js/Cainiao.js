@@ -3,10 +3,10 @@
 // Solicitar los números de seguimiento mediante un prompt
 const input = prompt("👾 Ingresa los números de guía Cainiao [📦]:");
 // Procesar el input para crear el array
-const trackingNumbers = input 
+const trackingNumbers = input
     ? input.split('\n')               // Dividir por saltos de línea
-           .map(num => num.trim())    // Limpiar espacios
-           .filter(num => num !== '') // Eliminar líneas vacías
+        .map(num => num.trim())    // Limpiar espacios
+        .filter(num => num !== '') // Eliminar líneas vacías
     : []; // Si no se ingresa nada, array vacío
 const color = prompt(`
 👾 Color (elige un número) [🎨]:
@@ -17,31 +17,48 @@ const color = prompt(`
 
 // Mapear números a nombres de color
 const colorMapNumber = {
-  '1': 'red',
-  '2': 'blue',
-  '3': 'green',
-  '4': 'black'
+    '1': 'red',
+    '2': 'blue',
+    '3': 'green',
+    '4': 'black'
 };
 const colorMap = {
-  '1': '🔴',
-  '2': '💙',
-  '3': '🟢',
-  '4': '⚫'
+    '1': '🔴',
+    '2': '💙',
+    '3': '🟢',
+    '4': '⚫'
 };
 // Validación y asignación del color
 const colorFinal = colorMapNumber[color] || "black";
 // Solicitar ubicación con opciones claras
 const id_location = prompt(`
 👾 Ingresa el ID de ubicación [📍]:
-1 - TQL
-2 - ZAC`) || 1;
+1 - TQL, 2 - ZAC
+3 - JTL, 4 - TLZ`
+) || 1;
 
-const id_user = (id_location == 1) ? 2 : 4;  // Si es 1 (TQL), asigna usuario 2 (karen); si no, asigna 4 (josue)
+// Asignar usuario según ubicación
+let id_user;
+
+if (id_location == 1) {
+    id_user = 2; // Karen
+} else if (id_location == 3 || id_location == 4) {
+    id_user = 9; // Jessica
+} else {
+    id_user = 4; // Josue
+}
 
 // Generar mensaje de confirmación
 const guiaInicial = trackingNumbers[0] || "N/A";
-const guiaFinal   = trackingNumbers[trackingNumbers.length - 1] || "N/A";
-const totalGuias  = trackingNumbers.length;
+const guiaFinal = trackingNumbers[trackingNumbers.length - 1] || "N/A";
+const totalGuias = trackingNumbers.length;
+
+const locationMap = {
+    1: "TQL",
+    2: "ZAC",
+    3: "JTL",
+    4: "TLZ"
+};
 
 const mensajeConfirmacion = `
 ¿👾 Los datos son correctos? [⚙️]:
@@ -52,7 +69,7 @@ const mensajeConfirmacion = `
 👉 Guía final: ${guiaFinal}
 ---------------------------------
 🎨 Color: ${colorMap[color]}
-📍 Ubicación: ${id_location == 1 ? "TQL" : "ZAC"}`;
+📍 Ubicación: ${locationMap[id_location] || "DESCONOCIDA"}`;
 
 // Mostrar alerta de confirmación
 const isConfirmed = confirm(mensajeConfirmacion);
@@ -161,16 +178,16 @@ if (isConfirmed) {
                 console.log(`:::::::::::::::::::::::::::::::::::::::::::::::::::::::::`);
 
                 const resultado = {
-                    option       : "store",
-                    id_location  : id_location,
-                    phone        : "",
-                    receiver     : "",
-                    address      : "",
-                    id_user      : id_user,
-                    tracking     : tracking,
+                    option: "store",
+                    id_location: id_location,
+                    phone: "",
+                    receiver: "",
+                    address: "",
+                    id_user: id_user,
+                    tracking: tracking,
                     id_cat_parcel: 3,
-                    marker       : colorFinal,
-                    estado       : ""
+                    marker: colorFinal,
+                    estado: ""
                 };
 
                 // 2️ Click en ojito
@@ -187,15 +204,15 @@ if (isConfirmed) {
                     const tds = tr.querySelectorAll('td');
 
                     return {
-                        tracking : tds[1]?.innerText.trim(),
+                        tracking: tds[1]?.innerText.trim(),
                         direccion: tds[11]?.innerText.trim(),
-                        nombre   : tds[12]?.innerText.trim(),
-                        telefono : tds[13]?.innerText.trim()
+                        nombre: tds[12]?.innerText.trim(),
+                        telefono: tds[13]?.innerText.trim()
                     };
                 });
 
                 const nameR = data.nombre;
-                const telR  = data.telefono;
+                const telR = data.telefono;
                 const addrR = data.direccion;
 
                 // 🔍 VALIDACIÓN
@@ -213,16 +230,25 @@ if (isConfirmed) {
                     resultado.estado = "Falló: Teléfono con asteriscos";
                 }
 
-                if (!/^\d{10}$/.test(telR)) {
-                    console.log("❌ Teléfono inválido (no 10 dígitos)");
+                // Limpiar teléfono: dejar solo números
+                const telefonoLimpio = telR.replace(/\D/g, '');
+
+                // Tomar últimos 10 dígitos
+                const telefonoFinal = telefonoLimpio.slice(-10);
+
+                // Validar
+                if (!/^\d{10}$/.test(telefonoFinal)) {
+                    console.log("❌ Teléfono inválido");
                     datosValidos = false;
                     resultado.estado = "Falló: Teléfono inválido";
+                } else {
+                    resultado.phone = telefonoFinal;
                 }
 
                 // Asignar datos
                 resultado.receiver = nameR;
-                resultado.phone    = telR;
-                resultado.address  = addrR;
+                //resultado.phone = telR;
+                resultado.address = addrR;
 
                 // 🚀 ENVÍO
                 if (datosValidos) {
@@ -260,7 +286,7 @@ if (isConfirmed) {
         console.log("📊 FIN DEL PROCESO:");
 
         const guiasRegistradas = resultados.filter(r => r.estado === "Registrado");
-        const guiasConError    = resultados.filter(r => r.estado !== "Registrado" && r.estado.includes("Falló"));
+        const guiasConError = resultados.filter(r => r.estado !== "Registrado" && r.estado.includes("Falló"));
 
         console.log(`📦 Total procesado: ${resultados.length}`);
         console.log(`✅ Guías registradas correctamente: ${guiasRegistradas.length}`);

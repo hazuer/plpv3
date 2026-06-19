@@ -1,5 +1,5 @@
 //Powered By HaZuEr.Ing
-//Version:08072025
+//Version:14102025
 // Solicitar los números de seguimiento mediante un prompt
 const input = prompt("👾 Ingresa los números de guía iMile [📦]:");
 // Procesar el input para crear el array
@@ -83,7 +83,7 @@ async function enviarDatos(resultado) {
     }
 }
 
-async function clickTab(page, possibleNames, maxAttempts = 6, delayBetweenAttempts = 3000) {
+async function clickTab(page, possibleNames, maxAttempts = 10, delayBetweenAttempts = 5000) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
             const tabs = await page.$$('button.MuiTab-root');
@@ -93,7 +93,7 @@ async function clickTab(page, possibleNames, maxAttempts = 6, delayBetweenAttemp
                 if (possibleNames.includes(tabText)) {
                     await tab.click();
                     console.log(`✅ ${attempt > 1 ? 'Reintento ' : ''}Clic en pestaña: ${tabText}`);
-                    await page.waitForTimeout(1000); // Pequeña espera para estabilización
+                    await page.waitForTimeout(1500); // Pequeña espera para estabilización
                     return true;
                 }
             }
@@ -142,38 +142,108 @@ if (isConfirmed) {
 
             await clickTab(page, possibleNames);
 
-            let tel_entrante = null;
-            let contact_name = null;
-            // Mapeo de posibles variaciones para cada campo
-            const phoneLabels = ['Teléfono entrante', 'Customer phone'];
-            const nameLabels = ['Contacto del destinatario', 'Customer Name'];
-            try {
-                const elements = await page.$$('.detail-item');
-                for (const element of elements) {
-                    try {
-                        const label = await element.$eval('.label', el => el.textContent.trim());
-                        const value = await element.$eval('.value', el => el.textContent.trim());
-                        // Normalizar la etiqueta para comparación (elimina acentos y convierte a minúsculas)
-                        const normalizedLabel = label
-                            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Elimina acentos
-                            .toLowerCase();
-                        // Buscar coincidencias para teléfono
-                        if (phoneLabels.some(phoneLabel => 
-                            normalizedLabel.includes(phoneLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()))) {
-                            tel_entrante = value.replace(/\D/g, '').slice(-10);
-                        }
-                        // Buscar coincidencias para nombre
-                        if (nameLabels.some(nameLabel => 
-                            normalizedLabel.includes(nameLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()))) {
-                            contact_name = value;
-                        }
-                    } catch (error) {
-                        console.log('Error procesando elemento:', error);
+            
+// --- NUEVO BLOQUE A IMPLEMENTAR ---
+
+let tel_entrante = null;
+let contact_name = null;
+// Mapeo de posibles variaciones para cada campo
+const phoneLabels = ['Teléfono entrante', 'Customer phone'];
+const nameLabels = ['Contacto del destinatario', 'Customer Name'];
+try {
+    // 1. PRIMERO: Hacer clic en los íconos del ojo para teléfono y nombre
+    console.log(`👁️ Buscando íconos del ojo...`);
+    const labels = await page.$$('.detail-item .label');
+    // Hacer clic en el ícono del teléfono
+    let phoneIconClicked = false;
+    let nameIconClicked = false;
+    for (const label of labels) {
+        const labelText = await page.evaluate(el => el.textContent, label);
+        const normalizedLabel = labelText
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+        // Verificar si es una etiqueta de teléfono
+        const isPhoneLabel = phoneLabels.some(phoneLabel => 
+            normalizedLabel.includes(phoneLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())
+        );
+        // Verificar si es una etiqueta de nombre
+        const isNameLabel = nameLabels.some(nameLabel => 
+            normalizedLabel.includes(nameLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())
+        );
+        // Buscar el SVG dentro de este label
+        const svg = await label.$('svg');
+        if (svg) {
+            if (isPhoneLabel && !phoneIconClicked) {
+                console.log(`✅ Etiqueta de teléfono encontrada: "${labelText}"`);
+                console.log(`🎯 Haciendo clic en ícono del teléfono...`);
+                await svg.click();
+                await page.waitForTimeout(2000);
+                phoneIconClicked = true;
+                console.log(`✅ Clic realizado en ícono del teléfono`);
+            }
+            if (isNameLabel && !nameIconClicked) {
+                console.log(`✅ Etiqueta de nombre encontrada: "${labelText}"`);
+                console.log(`🎯 Haciendo clic en ícono del nombre...`);
+                await svg.click();
+                await page.waitForTimeout(2000);
+                nameIconClicked = true;
+                console.log(`✅ Clic realizado en ícono del nombre`);
+            }
+        }
+        // Si ya hicimos clic en ambos, salir del loop
+        if (phoneIconClicked && nameIconClicked) {
+            break;
+        }
+    }
+    if (!phoneIconClicked) {
+        console.log(`❌ No se pudo hacer clic en el ícono del teléfono`);
+    }
+    if (!nameIconClicked) {
+        console.log(`❌ No se pudo hacer clic en el ícono del nombre`);
+    }
+    // 2. SEGUNDO: Buscar los datos actualizados
+    console.log(`🔍 Buscando datos actualizados...`);
+    const elements = await page.$$('.detail-item');
+    for (const element of elements) {
+        try {
+            const labelElement = await element.$('.label');
+            const valueElement = await element.$('.value');
+            if (labelElement && valueElement) {
+                const label = await page.evaluate(el => el.textContent.trim(), labelElement);
+                const value = await page.evaluate(el => el.textContent.trim(), valueElement);
+                // Normalizar la etiqueta para comparación
+                const normalizedLabel = label
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase();
+                // Buscar coincidencias para teléfono
+                if (phoneLabels.some(phoneLabel => 
+                    normalizedLabel.includes(phoneLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()))) {
+                    if (value !== '****' && value.trim() !== '' && value !== '-') {
+                        tel_entrante = value.replace(/\D/g, '').slice(-10);
+                        console.log(`📞 Teléfono encontrado: ${tel_entrante}`);
+                    } else {
+                        console.log(`🔒 Teléfono aún oculto: "${value}"`);
                     }
                 }
-            } catch (error) {
-                console.error('Error al buscar elementos:', error);
+                // Buscar coincidencias para nombre
+                if (nameLabels.some(nameLabel => 
+                    normalizedLabel.includes(nameLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()))) {
+                    if (value !== '****' && value.trim() !== '' && value !== '-') {
+                        contact_name = value;
+                        console.log(`👤 Nombre encontrado: ${contact_name}`);
+                    } else {
+                        console.log(`🔒 Nombre aún oculto: "${value}"`);
+                    }
+                }
             }
+        } catch (error) {
+            console.log('Error procesando elemento:', error.message);
+        }
+    }
+} catch (error) {
+    console.error('Error al buscar elementos:', error.message);
+}
+// --- FIN DEL NUEVO BLOQUE ---
 
             const errores = [];
             // Validar teléfono (10 dígitos exactos)
@@ -212,7 +282,7 @@ if (isConfirmed) {
                 resultado.estado = "Falló: " + errores.join(' - ');
                 console.error('❌ Datos incompletos:', errores.join(' | '));
             }
-            await page.evaluate(() => console.clear());
+            //await page.evaluate(() => console.clear());
 
         } catch (error) {
             console.error(`❌ Error al procesar ${trackingNumber}:`, error.message);
